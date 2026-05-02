@@ -703,7 +703,22 @@ function togglePerm(type){
 
 // ═══ 로그인 ═══
 function applyData(r){
-  C.grades   = r.grades   || [];
+  C.grades = r.grades || [];
+  // Grades 시트가 비어있으면 기본 등급 표시 (저장은 별도 필요)
+  if(!C.grades.length){
+    C.grades=[
+      {id:"__vvip",name:"VVIP",color:"#f59e0b",sortOrder:0},
+      {id:"__vip", name:"VIP", color:"#6366f1",sortOrder:1},
+      {id:"__gen", name:"일반",color:"#34d399",sortOrder:2}
+    ];
+    // 관리자면 알림
+    if(r.level==="admin"){
+      setTimeout(function(){
+        if(confirm("등급 데이터가 없습니다.\n기본 등급(VVIP/VIP/일반)을 생성하시겠습니까?"))
+          initDefaultGrades();
+      },800);
+    }
+  }
   C.groups   = r.groups   || [];
   C.managers = r.managers || [];
   C.depts    = r.depts    || [];
