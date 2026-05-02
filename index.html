@@ -625,6 +625,38 @@ var PW="",curPg="Home",calDt=new Date(),calSel=null;
 var editSchId=null,editVipId=null,editDptId=null,editGrpId=null,editGrdId=null,chgPwType=null;
 var vipFlt="all",aSub="vip",mobView=0,vipViewMode="list";
 var bulkMode={vip:false,ntc:false,grp:false,dpt:false};
+var openGrpSecs={};
+
+function toggleGrpSec2(gid){
+  openGrpSecs[gid]=!openGrpSecs[gid];
+  renderGrpList();
+}
+
+function removeFromGrp(vid){
+  if(!confirm("이 대상자를 그룹에서 제거하시겠습니까?\n(대상자 정보는 유지됩니다)"))return;
+  var v=getVip(vid);if(!v)return;
+  var row={};
+  for(var k in v)row[k]=v[k];
+  row.groupId="";
+  setLd(true,"처리 중...");
+  callApi("saveVip",{row:row},function(err,r){
+    setLd(false);
+    if(err||r.error){alert("실패");return;}
+    doRefresh();
+  });
+}
+
+function bulkRemoveFromGrp(gid){
+  var members=C.vips.filter(function(v){return String(v.groupId||"")===String(gid);});
+  if(!members.length)return;
+  if(!confirm(members.length+"명을 그룹에서 제거하시겠습니까?"))return;
+  setLd(true,"처리 중...");
+  var done=0;
+  members.forEach(function(v){
+    var row={};for(var k in v)row[k]=v[k];row.groupId="";
+    callApi("saveVip",{row:row},function(){if(++done===members.length){doRefresh();}});
+  });
+}
 var selGrdColor="#6366f1",selGrpColor="#6366f1";
 var TM={outpatient:"외래",admission:"입원",exam:"검사",surgery:"수술",other:"기타"};
 var DN=["일","월","화","수","목","금","토"];
@@ -1409,13 +1441,28 @@ function expired(n){return n.expiry&&new Date(String(n.expiry)+"T23:59:59")<new 
 function isAdmitted(vid){var ts=ds(new Date());return C.schs.some(function(s){return String(s.vipId)===String(vid)&&s.type==="admission"&&dstr(s.date)<=ts&&(!s.endDate||dstr(s.endDate)>=ts);});}
 
 document.querySelectorAll(".ov").forEach(function(m){m.addEventListener("click",function(e){if(e.target===m)m.classList.remove("op");});});
-// 등급/그룹 필터 버튼 이벤트 위임
+// 이벤트 위임 (필터 + 그룹 관리)
 document.addEventListener("click",function(e2){
+  // 등급/그룹 필터
   var fb=e2.target.closest("[data-fid]");
   if(fb&&document.getElementById("vipFltBtns")&&document.getElementById("vipFltBtns").contains(fb)){
-    vipFlt=fb.getAttribute("data-fid");
-    renderVipList();buildVipFltBtns();
+    vipFlt=fb.getAttribute("data-fid");renderVipList();buildVipFltBtns();return;
   }
+  // 그룹 토글
+  var tog=e2.target.closest("[data-grptog]");
+  if(tog){var gid=tog.getAttribute("data-grptog");openGrpSecs[gid]=!openGrpSecs[gid];renderGrpList();return;}
+  // 그룹 수정
+  var edit=e2.target.closest("[data-grpedit]");
+  if(edit){e2.stopPropagation();openGrpMod(edit.getAttribute("data-grpedit"));return;}
+  // 그룹 삭제
+  var del=e2.target.closest("[data-grpdel]");
+  if(del){e2.stopPropagation();delGrp(del.getAttribute("data-grpdel"));return;}
+  // 멤버 제거
+  var rem=e2.target.closest("[data-grprem]");
+  if(rem){removeFromGrp(rem.getAttribute("data-grprem"));return;}
+  // 전체 제거
+  var remAll=e2.target.closest("[data-grpremall]");
+  if(remAll){bulkRemoveFromGrp(remAll.getAttribute("data-grpremall"));return;}
 });
 document.getElementById("pwin").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
 document.getElementById("swPw").addEventListener("keydown",function(e){if(e.key==="Enter")doPwSw();});
@@ -1423,15 +1470,47 @@ document.getElementById("swPw").addEventListener("keydown",function(e){if(e.key=
 function renderGrpList(){
   var el=document.getElementById("grpList");if(!el)return;
   if(!C.groups||!C.groups.length){el.innerHTML=empH("등록된 그룹이 없습니다");return;}
-  el.innerHTML=C.groups.map(function(g){
-    var cnt=C.vips.filter(function(v){return String(v.groupId||"")===String(g.id);}).length;
-    return "<div class='lcard'>"+
-      "<div style='width:20px;height:20px;border-radius:50%;background:"+g.color+";flex-shrink:0;margin-right:8px'></div>"+
-      "<div style='flex:1'><div style='font-size:14px;font-weight:700'>"+g.name+"</div>"+(g.desc?"<div style='font-size:12px;color:var(--mt)'>"+g.desc+"</div>":"")+"</div>"+
-      "<span style='font-size:12px;color:var(--mt);margin-right:8px'>"+cnt+"명</span>"+
-      "<button class='bs' style='margin-right:6px' onclick='openGrpMod("+JSON.stringify(g.id)+")'>수정</button>"+
-      "<button class='bsd' onclick='delGrp("+JSON.stringify(g.id)+")'>삭제</button></div>";
-  }).join("");
+  var parts=[];
+  C.groups.forEach(function(g){
+    var members=C.vips.filter(function(v){return String(v.groupId||"")===String(g.id);});
+    var expanded=!!openGrpSecs[g.id];
+    var gid=g.id;
+    parts.push("<div class='sc' style='margin-bottom:10px'>");
+    // 헤더
+    parts.push("<div style='display:flex;align-items:center;gap:8px;padding:11px 13px;background:var(--cd2);cursor:pointer' data-grptog='"+gid+"'>");
+    parts.push("<div style='width:18px;height:18px;border-radius:50%;background:"+g.color+";flex-shrink:0'></div>");
+    parts.push("<span style='font-size:14px;font-weight:700;flex:1'>"+g.name+"</span>");
+    if(g.desc) parts.push("<span style='font-size:12px;color:var(--mt);margin-right:6px'>"+g.desc+"</span>");
+    parts.push("<span style='font-size:12px;font-weight:700;color:"+g.color+";margin-right:8px'>"+members.length+"명</span>");
+    parts.push("<button class='bs' style='margin-right:6px;font-size:11px;padding:5px 10px' data-grpedit='"+gid+"'>수정</button>");
+    parts.push("<button class='bsd' style='font-size:11px;padding:5px 10px' data-grpdel='"+gid+"'>삭제</button>");
+    parts.push("<span style='font-size:12px;color:var(--mt);margin-left:6px'>"+(expanded?"▲":"▼")+"</span>");
+    parts.push("</div>");
+    // 멤버 목록
+    if(expanded){
+      parts.push("<div style='padding:8px'>");
+      if(members.length){
+        parts.push("<div style='display:flex;justify-content:flex-end;margin-bottom:8px'>");
+        parts.push("<button class='bsd' style='font-size:11px;padding:5px 10px' data-grpremall='"+gid+"'>전체 그룹 제거</button>");
+        parts.push("</div>");
+        members.forEach(function(v){
+          var col=getGrd(v.gradeId).color;
+          var grd=getGrd(v.gradeId);
+          parts.push("<div style='display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:6px'>");
+          parts.push("<div style='width:34px;height:34px;border-radius:50%;background:"+col+"20;color:"+col+";border:2px solid "+col+"50;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0'>"+String(v.name).slice(-2)+"</div>");
+          parts.push("<div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:700'>"+v.name+"</div>");
+          parts.push("<div style='font-size:11px;color:var(--mt)'>"+grd.name+(v.pos?" · "+v.pos:"")+"</div></div>");
+          parts.push("<button class='bsd' style='font-size:11px;padding:5px 10px;flex-shrink:0' data-grprem='"+v.id+"'>제거</button>");
+          parts.push("</div>");
+        });
+      }else{
+        parts.push("<div style='text-align:center;padding:16px;color:var(--mt);font-size:13px'>이 그룹에 속한 대상자가 없습니다</div>");
+      }
+      parts.push("</div>");
+    }
+    parts.push("</div>");
+  });
+  el.innerHTML=parts.join("");
 }
 
 
