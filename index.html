@@ -684,7 +684,15 @@ function gradesSorted(){return C.grades.slice().sort(function(a,b){return(parseI
 // ═══ API ═══
 function callApi(action,extra,cb){
   var p={action:action,pw:PW};if(extra)for(var k in extra)p[k]=extra[k];
-  fetch(API_URL+"?p="+encodeURIComponent(JSON.stringify(p))).then(function(r){return r.json();}).then(function(d){cb(null,d);}).catch(function(e){cb(e,null);});
+  var url=API_URL+"?p="+encodeURIComponent(JSON.stringify(p));
+  console.log("[API요청]",action,"pw="+PW,"level="+C.level);
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    console.log("[API응답]",action,JSON.stringify(d).slice(0,200));
+    cb(null,d);
+  }).catch(function(e){
+    console.error("[API오류]",action,e);
+    cb(e,null);
+  });
 }
 function setLd(on,txt){document.getElementById("lo").style.display=on?"flex":"none";if(txt)document.getElementById("ltxt").textContent=txt;}
 function setSS(ok,txt){document.getElementById("syd").className="syd"+(ok?"":" e");document.getElementById("sytxt").textContent=txt;}
@@ -1390,10 +1398,23 @@ function setGrdColor(c){selGrdColor=c;document.getElementById("grdColorPicker").
 function onColorPick(c){selGrdColor=c;document.getElementById("grdColorHex").value=c;document.getElementById("grdPreview").style.background=c;}
 function onColorHex(v){if(/^#[0-9a-fA-F]{6}$/.test(v)){selGrdColor=v;document.getElementById("grdColorPicker").value=v;document.getElementById("grdPreview").style.background=v;}}
 function saveGrd(){
-  var name=document.getElementById("grdName").value.trim();if(!name){alert("등급명을 입력해주세요.");return;}
-  var row={name:name,color:selGrdColor,sortOrder:parseInt(document.getElementById("grdOrder").value)||0};if(editGrdId)row.id=editGrdId;
+  var name=document.getElementById("grdName").value.trim();
+  if(!name){alert("등급명을 입력해주세요.");return;}
+  var row={name:name,color:selGrdColor,sortOrder:parseInt(document.getElementById("grdOrder").value)||0};
+  if(editGrdId)row.id=editGrdId;
   closeM("mGrd");setLd(true,"저장 중...");
-  callApi("saveGrade",{row:row},function(err,r){if(err){alert("연결 오류: "+err);setLd(false);return;}if(!r||r.error){alert("저장 실패: "+(r&&r.error?r.error:"응답 없음"));setLd(false);return;}doRefresh();});
+  callApi("saveGrade",{row:row},function(err,r){
+    setLd(false);
+    if(err||!r||r.error){
+      if(r&&r.error==="forbidden"){
+        alert("저장 실패 (forbidden)\n전송 비밀번호: ["+PW+"]\n\nGoogle Sheets > Config 시트\nadminPw 값을 확인하세요.");
+      }else{
+        alert("저장 실패: "+JSON.stringify(r||String(err)));
+      }
+      return;
+    }
+    doRefresh();
+  });
 }
 function delGrd(id){
   if(C.vips.some(function(v){return String(v.gradeId)===String(id);})){alert("이 등급을 사용 중인 VIP가 있어 삭제할 수 없습니다.");return;}
@@ -1403,7 +1424,28 @@ function delGrd(id){
 
 // 진료과 모달
 function openDptMod(id){editDptId=id||null;var d=id?C.depts.filter(function(x){return x.id===id;})[0]:null;document.getElementById("mDptTtl").textContent=d?"진료과 수정":"진료과 등록";document.getElementById("dAbbr").value=d?d.abbr:"";document.getElementById("dFull").value=d?d.fullName:"";openM("mDpt");}
-function saveDpt(){var a=document.getElementById("dAbbr").value.trim(),f=document.getElementById("dFull").value.trim();if(!a||!f){alert("약어와 전체명을 입력해주세요.");return;}var row={abbr:a,fullName:f};if(editDptId)row.id=editDptId;closeM("mDpt");setLd(true,"저장 중...");callApi("saveDept",{row:row},function(err,r){if(err){alert("연결 오류: "+err);setLd(false);return;}if(!r||r.error){alert("저장 실패: "+(r&&r.error?r.error:"응답 없음"));setLd(false);return;}doRefresh();});}
+function saveDpt(){
+  var a=document.getElementById("dAbbr").value.trim();
+  var f=document.getElementById("dFull").value.trim();
+  if(!a||!f){alert("약어와 전체명을 입력해주세요.");return;}
+  var row={abbr:a,fullName:f};
+  if(editDptId)row.id=editDptId;
+  closeM("mDpt");setLd(true,"저장 중...");
+  callApi("saveDept",{row:row},function(err,r){
+    setLd(false);
+    if(err||!r||r.error){
+      if(r&&r.error==="forbidden"){
+        alert("저장 실패 (forbidden)\n전송 비밀번호: ["+PW+"]\n\nGoogle Sheets > Config 시트\nadminPw 값을 확인하세요.");
+      }else{
+        alert("저장 실패: "+JSON.stringify(r||String(err)));
+      }
+      return;
+    }
+    doRefresh();
+  });
+}
+
+
 function delDpt(id){if(!confirm("삭제하시겠습니까?"))return;setLd(true,"삭제 중...");callApi("delDept",{id:id},function(err){if(err){alert("삭제 실패.");setLd(false);return;}doRefresh();});}
 
 // 그룹 모달
@@ -1424,7 +1466,7 @@ function saveGrp(){
   var name=document.getElementById("gName").value.trim();if(!name){alert("그룹명을 입력해주세요.");return;}
   var row={name:name,desc:document.getElementById("gDesc").value,color:selGrpColor};if(editGrpId)row.id=editGrpId;
   closeM("mGrp");setLd(true,"저장 중...");
-  callApi("saveGroup",{row:row},function(err,r){if(err||r.error){alert("저장 실패.");setLd(false);return;}doRefresh();});
+  callApi("saveGroup",{row:row},function(err,r){if(err){alert("연결오류:\n"+String(err));setLd(false);return;}if(!r||r.error){alert("저장실패:\n"+JSON.stringify(r));setLd(false);return;}doRefresh();});
 }
 function delGrp(id){if(!confirm("그룹을 삭제하시겠습니까?"))return;setLd(true,"삭제 중...");callApi("delGroup",{id:id},function(err){if(err){alert("삭제 실패.");setLd(false);return;}doRefresh();});}
 
@@ -1620,6 +1662,19 @@ function createDefaultGrades(){
       }
     });
   });
+}
+
+function handleApiErr(err,r,label){
+  if(err){alert((label||"저장")+" 연결오류:\n"+String(err));return true;}
+  if(!r||r.error){
+    if(r&&r.error==="forbidden"){
+      alert("⚠️ 권한 없음\n\n현재 권한: "+C.level+"\n\n관리자 비밀번호로 전환하세요.\n상단 🔒 버튼을 누르세요.");
+    }else{
+      alert((label||"저장")+" 실패:\n"+(r?r.error:"응답없음"));
+    }
+    return true;
+  }
+  return false;
 }
 
 window.addEventListener("load",function(){var t=localStorage.getItem("vip_theme")||"dark";applyTheme(t);buildThemeGrid();setTimeout(function(){applyTheme(t);},100);});
