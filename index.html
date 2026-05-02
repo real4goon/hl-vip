@@ -363,7 +363,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
       </div>
       <div id="adminCont" style="display:none">
         <div class="stabs">
-          <button class="stab on" onclick="setAS('vip',this)">VIP</button>
+          <button class="stab on" onclick="setAS('vip',this)">명단</button>
           <button class="stab" onclick="setAS('grp',this)">그룹</button>
           <button class="stab" onclick="setAS('grd',this)">등급</button>
           <button class="stab" onclick="setAS('dpt',this)">진료과</button>
@@ -632,16 +632,20 @@ var PALETTE=["#f87171","#fb923c","#fbbf24","#a3e635","#34d399","#22d3ee","#60a5f
 
 // ═══ 등급 헬퍼 ═══
 function getGrd(id){
-  // id가 없으면 sortOrder 가장 높은(마지막) 등급 반환
-  if(!id||id===""){
-    var last=gradesSorted();return last[last.length-1]||{id:"",name:"일반",color:"#94a3b8",sortOrder:99};
+  if(!C.grades||!C.grades.length)return {id:"",name:"?",color:"#94a3b8",sortOrder:99};
+  if(!id||String(id)===""||String(id)==="undefined"){
+    // ID 없으면 마지막 등급(순서 가장 낮은)
+    return gradesSorted()[gradesSorted().length-1];
   }
+  // UUID로 정확히 매칭
   var g=C.grades.filter(function(g){return String(g.id)===String(id);})[0];
   if(g)return g;
-  // id가 있지만 못 찾으면 (구버전 "vvip" 문자열 등) 이름으로 찾기
+  // 구버전 이름 문자열("vvip","vip","general") 매핑
+  var legacyNames={"vvip":0,"vip":1,"general":99};
   var byName=C.grades.filter(function(g){return g.name.toLowerCase()===String(id).toLowerCase();})[0];
   if(byName)return byName;
-  var last2=gradesSorted();return last2[last2.length-1]||{id:"",name:"일반",color:"#94a3b8",sortOrder:99};
+  // 못 찾으면 마지막 등급
+  return gradesSorted()[gradesSorted().length-1];
 }
 function gradesSorted(){return C.grades.slice().sort(function(a,b){return(parseInt(a.sortOrder)||0)-(parseInt(b.sortOrder)||0);});}
 
@@ -670,7 +674,7 @@ function applyData(r){
   C.vips=r.vips||[];C.schs=r.schs||[];C.ntcs=r.ntcs||[];C.depts=r.depts||[];
   C.groups=r.groups||[];C.grades=r.grades||[];C.managers=r.managers||[];C.level=r.level;
   if(r.perms)C.perms=r.perms;
-  if(!C.grades.length)C.grades=[{id:"g1",name:"VVIP",color:"#f59e0b",sortOrder:0},{id:"g2",name:"VIP",color:"#6366f1",sortOrder:1},{id:"g3",name:"일반",color:"#34d399",sortOrder:2}];
+  // grades는 서버에서만 관리 - 클라이언트 fallback 없음
 }
 function doLogin(){
   var pw=document.getElementById("pwin").value;if(!pw)return;
@@ -800,7 +804,7 @@ function bulkDelNtc(){
 }
 
 // ═══ 렌더 ═══
-function renderAll(){renderHome();renderCal();renderNtcs();renderVipList();renderGrpList();renderGrdList();renderDptList();renderMgrList();buildVipFltBtns();}
+function renderAll(){renderHome();renderCal();renderNtcs();renderVipList();renderGrpList();renderGrdList();renderDptList();renderMgrList();}
 function dstr(s){return s?String(s).substring(0,10):"";}
 
 // ── 홈 ──
@@ -982,6 +986,7 @@ function toggleVipView(){
   renderVipList();
 }
 function renderVipList(){
+  buildVipFltBtns(); // 등급/그룹 로드 후 필터 재구성
   var q=document.getElementById("vipSrch")?document.getElementById("vipSrch").value:"";
   var list=C.vips.slice();
   if(vipFlt==="all"){
@@ -1366,6 +1371,59 @@ document.addEventListener("click",function(e2){
 });
 document.getElementById("pwin").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
 document.getElementById("swPw").addEventListener("keydown",function(e){if(e.key==="Enter")doPwSw();});
+
+function renderGrpList(){
+  var el=document.getElementById("grpList");if(!el)return;
+  if(!C.groups||!C.groups.length){el.innerHTML=empH("등록된 그룹이 없습니다");return;}
+  el.innerHTML=C.groups.map(function(g){
+    var cnt=C.vips.filter(function(v){return String(v.groupId||"")===String(g.id);}).length;
+    return "<div class='lcard'>"+
+      "<div style='width:20px;height:20px;border-radius:50%;background:"+g.color+";flex-shrink:0;margin-right:8px'></div>"+
+      "<div style='flex:1'><div style='font-size:14px;font-weight:700'>"+g.name+"</div>"+(g.desc?"<div style='font-size:12px;color:var(--mt)'>"+g.desc+"</div>":"")+"</div>"+
+      "<span style='font-size:12px;color:var(--mt);margin-right:8px'>"+cnt+"명</span>"+
+      "<button class='bs' style='margin-right:6px' onclick='openGrpMod("+JSON.stringify(g.id)+")'>수정</button>"+
+      "<button class='bsd' onclick='delGrp("+JSON.stringify(g.id)+")'>삭제</button></div>";
+  }).join("");
+}
+
+
+function renderGrdList(){
+  var el=document.getElementById("grdList");if(!el)return;
+  var list=gradesSorted();
+  if(!list.length){el.innerHTML=empH("등록된 등급이 없습니다");return;}
+  el.innerHTML=list.map(function(g){
+    var cnt=C.vips.filter(function(v){return String(v.gradeId||"")===String(g.id);}).length;
+    return "<div class='grade-card'>"+
+      "<div class='grade-swatch' style='background:"+g.color+"'></div>"+
+      "<div style='flex:1;margin-left:8px'><div style='font-size:14px;font-weight:700;color:"+g.color+"'>"+g.name+"</div>"+
+      "<div style='font-size:12px;color:var(--mt)'>"+cnt+"명 · 순서 "+g.sortOrder+"</div></div>"+
+      "<button class='bs' style='margin-right:6px' onclick='openGrdMod("+JSON.stringify(g.id)+")'>수정</button>"+
+      "<button class='bsd' onclick='delGrd("+JSON.stringify(g.id)+")'>삭제</button></div>";
+  }).join("");
+}
+
+function renderDptList(){
+  var el=document.getElementById("dptList");if(!el)return;
+  if(!C.depts.length){el.innerHTML=empH("등록된 진료과가 없습니다");return;}
+  el.innerHTML=C.depts.map(function(d){
+    var cbH=bulkMode.dpt?"<input type='checkbox' class='bulk-cb-dpt' value='"+d.id+"' onclick='event.stopPropagation()' style='width:18px;height:18px;accent-color:var(--ac);margin-right:4px'>":"";
+    return "<div class='lcard'>"+(bulkMode.dpt?"<div class='cb-wrap'>"+cbH+"</div>":"")+
+      "<div style='min-width:55px;font-size:14px;font-weight:700;color:var(--ac2)'>"+d.abbr+"</div>"+
+      "<div style='flex:1;font-size:13px;color:var(--mt)'>"+d.fullName+"</div>"+
+      "<button class='bs' style='margin-right:6px' onclick='openDptMod("+JSON.stringify(d.id)+")'>수정</button>"+
+      "<button class='bsd' onclick='delDpt("+JSON.stringify(d.id)+")'>삭제</button></div>";
+  }).join("");
+}
+
+function renderMgrList(){
+  var el=document.getElementById("mgrList");if(!el)return;
+  if(!C.managers.length){el.innerHTML=empH("등록된 담당자가 없습니다");return;}
+  el.innerHTML=C.managers.map(function(m){
+    return "<div class='lcard'><span style='font-size:14px;font-weight:600;flex:1'>"+m.name+"</span>"+
+      "<button class='bsd' onclick='delMgr("+JSON.stringify(m.id)+")'>삭제</button></div>";
+  }).join("");
+}
+
 window.addEventListener("load",function(){var t=localStorage.getItem("vip_theme")||"dark";applyTheme(t);buildThemeGrid();setTimeout(function(){applyTheme(t);},100);});
 window.addEventListener("resize",function(){if(curPg==="Cal")renderGT(calDt.getFullYear(),calDt.getMonth());});
 </script>
