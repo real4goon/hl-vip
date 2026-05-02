@@ -703,22 +703,7 @@ function togglePerm(type){
 
 // ═══ 로그인 ═══
 function applyData(r){
-  C.grades = r.grades || [];
-  // Grades 시트가 비어있으면 기본 등급 표시 (저장은 별도 필요)
-  if(!C.grades.length){
-    C.grades=[
-      {id:"__vvip",name:"VVIP",color:"#f59e0b",sortOrder:0},
-      {id:"__vip", name:"VIP", color:"#6366f1",sortOrder:1},
-      {id:"__gen", name:"일반",color:"#34d399",sortOrder:2}
-    ];
-    // 관리자면 알림
-    if(r.level==="admin"){
-      setTimeout(function(){
-        if(confirm("등급 데이터가 없습니다.\n기본 등급(VVIP/VIP/일반)을 생성하시겠습니까?"))
-          initDefaultGrades();
-      },800);
-    }
-  }
+  C.grades   = r.grades   || [];
   C.groups   = r.groups   || [];
   C.managers = r.managers || [];
   C.depts    = r.depts    || [];
@@ -727,44 +712,38 @@ function applyData(r){
   C.level    = r.level;
   if(r.perms) C.perms = r.perms;
 
-  // ── 등급 정규화 맵 ──
-  // id → true, 이름소문자 → id
+  // 등급 맵 생성
   var gradeById  = {};
   var gradeByName= {};
   C.grades.forEach(function(g){
     gradeById[String(g.id)] = g;
     gradeByName[String(g.name).toLowerCase()] = String(g.id);
   });
-  // 구버전 키워드 → 이름 매핑
   var legacyMap = {vvip:"vvip", vip:"vip", general:"일반", "일반":"일반"};
-  var lastGradeId = C.grades.length ? String(C.grades[C.grades.length-1].id) : "";
-  // 정렬해서 진짜 마지막(lowest priority)
   var sortedG = C.grades.slice().sort(function(a,b){
     return (parseInt(a.sortOrder)||0)-(parseInt(b.sortOrder)||0);
   });
-  if(sortedG.length) lastGradeId = String(sortedG[sortedG.length-1].id);
+  var lastGradeId = sortedG.length ? String(sortedG[sortedG.length-1].id) : "";
 
-  // ── 그룹 정규화 맵 ──
+  // 그룹 맵
   var groupById = {};
   C.groups.forEach(function(g){ groupById[String(g.id)] = true; });
 
-  // ── VIP 정규화 ──
+  // VIP gradeId / groupId 정규화
   C.vips = (r.vips||[]).map(function(v){
-    // gradeId 정규화
-    var gid = String(v.gradeId||"");
+    var gid = String(v.gradeId||"").trim();
     if(!gid || !gradeById[gid]){
-      // 1) gradeId가 이름인 경우 (구버전 "vvip","vip" 등)
-      var byName = gradeByName[gid.toLowerCase()];
-      // 2) legacy 매핑
-      if(!byName) byName = gradeByName[(legacyMap[gid.toLowerCase()]||"").toLowerCase()];
-      // 3) 구버전 grade 필드
+      // 이름으로 찾기 (vvip, vip, 일반 등)
+      var byName = gradeByName[gid.toLowerCase()]
+        || gradeByName[(legacyMap[gid.toLowerCase()]||"").toLowerCase()];
+      // 구버전 grade 필드
       if(!byName){
-        var oldGrade = String(v.grade||"").toLowerCase();
-        byName = gradeByName[oldGrade] || gradeByName[(legacyMap[oldGrade]||"").toLowerCase()];
+        var old = String(v.grade||"").toLowerCase().trim();
+        byName = gradeByName[old] || gradeByName[(legacyMap[old]||"").toLowerCase()];
       }
       v.gradeId = byName || lastGradeId;
     }
-    // groupId 정규화
+    // groupId 검증
     if(v.groupId && !groupById[String(v.groupId)]){
       v.groupId = "";
     }
