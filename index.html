@@ -1457,7 +1457,19 @@ document.addEventListener("click",function(e2){
   // 그룹 삭제
   var del=e2.target.closest("[data-grpdel]");
   if(del){e2.stopPropagation();delGrp(del.getAttribute("data-grpdel"));return;}
-  // 멤버 제거
+  // 등급 토글
+  var gtog=e2.target.closest("[data-grdtog]");
+  if(gtog){var gid2=gtog.getAttribute("data-grdtog");openGrdSecs[gid2]=!openGrdSecs[gid2];renderGrdList();return;}
+  // 등급 수정
+  var gedit=e2.target.closest("[data-grdedit]");
+  if(gedit){e2.stopPropagation();openGrdMod(gedit.getAttribute("data-grdedit"));return;}
+  // 등급 삭제
+  var gdel=e2.target.closest("[data-grddel]");
+  if(gdel){e2.stopPropagation();delGrd(gdel.getAttribute("data-grddel"));return;}
+  // VIP 상세 (등급탭에서)
+  var vdet=e2.target.closest("[data-vipdet]");
+  if(vdet){openVipDet(vdet.getAttribute("data-vipdet"));return;}
+    // 멤버 제거
   var rem=e2.target.closest("[data-grprem]");
   if(rem){removeFromGrp(rem.getAttribute("data-grprem"));return;}
   // 전체 제거
@@ -1518,15 +1530,43 @@ function renderGrdList(){
   var el=document.getElementById("grdList");if(!el)return;
   var list=gradesSorted();
   if(!list.length){el.innerHTML=empH("등록된 등급이 없습니다");return;}
-  el.innerHTML=list.map(function(g){
-    var cnt=C.vips.filter(function(v){return String(v.gradeId||"")===String(g.id);}).length;
-    return "<div class='grade-card'>"+
-      "<div class='grade-swatch' style='background:"+g.color+"'></div>"+
-      "<div style='flex:1;margin-left:8px'><div style='font-size:14px;font-weight:700;color:"+g.color+"'>"+g.name+"</div>"+
-      "<div style='font-size:12px;color:var(--mt)'>"+cnt+"명 · 순서 "+g.sortOrder+"</div></div>"+
-      "<button class='bs' style='margin-right:6px' onclick='openGrdMod("+JSON.stringify(g.id)+")'>수정</button>"+
-      "<button class='bsd' onclick='delGrd("+JSON.stringify(g.id)+")'>삭제</button></div>";
-  }).join("");
+  var parts=[];
+  list.forEach(function(g){
+    var members=C.vips.filter(function(v){return String(v.gradeId||"")===String(g.id);});
+    var expanded=!!openGrdSecs[g.id];
+    parts.push("<div class='sc' style='margin-bottom:10px'>");
+    // 헤더
+    parts.push("<div style='display:flex;align-items:center;gap:8px;padding:11px 13px;background:var(--cd2);cursor:pointer' data-grdtog='"+g.id+"'>");
+    parts.push("<div style='width:18px;height:18px;border-radius:50%;background:"+g.color+";flex-shrink:0'></div>");
+    parts.push("<span style='font-size:14px;font-weight:700;color:"+g.color+";flex:1'>"+g.name+"</span>");
+    parts.push("<span style='font-size:12px;font-weight:700;color:"+g.color+";margin-right:8px'>"+members.length+"명</span>");
+    parts.push("<span style='font-size:11px;color:var(--mt);margin-right:8px'>순서 "+g.sortOrder+"</span>");
+    parts.push("<button class='bs' style='margin-right:6px;font-size:11px;padding:5px 10px' data-grdedit='"+g.id+"'>수정</button>");
+    var canDel=members.length===0;
+    parts.push("<button class='"+(canDel?"bsd":"bs")+"' style='font-size:11px;padding:5px 10px' data-grddel='"+g.id+"'>"+(canDel?"삭제":"삭제불가")+"</button>");
+    parts.push("<span style='font-size:12px;color:var(--mt);margin-left:6px'>"+(expanded?"▲":"▼")+"</span>");
+    parts.push("</div>");
+    // 멤버 펼침
+    if(expanded){
+      parts.push("<div style='padding:8px'>");
+      if(members.length){
+        members.forEach(function(v){
+          var grp=getGrpById(v.groupId);
+          parts.push("<div style='display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:6px;cursor:pointer' data-vipdet='"+v.id+"'>");
+          parts.push("<div style='width:34px;height:34px;border-radius:50%;background:"+g.color+"20;color:"+g.color+";border:2px solid "+g.color+"50;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0'>"+String(v.name).slice(-2)+"</div>");
+          parts.push("<div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:700'>"+v.name+"</div>");
+          parts.push("<div style='font-size:11px;color:var(--mt)'>"+(v.pos||"")+(grp?" · <span style=\"color:"+grp.color+"\">"+grp.name+"</span>":"")+"</div></div>");
+          parts.push("<span style='font-size:12px;color:var(--dm)'>›</span>");
+          parts.push("</div>");
+        });
+      }else{
+        parts.push("<div style='text-align:center;padding:16px;color:var(--mt);font-size:13px'>이 등급에 속한 대상자가 없습니다</div>");
+      }
+      parts.push("</div>");
+    }
+    parts.push("</div>");
+  });
+  el.innerHTML=parts.join("");
 }
 
 function renderDptList(){
