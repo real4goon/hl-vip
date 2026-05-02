@@ -671,10 +671,58 @@ function togglePerm(type){
 
 // ═══ 로그인 ═══
 function applyData(r){
-  C.vips=r.vips||[];C.schs=r.schs||[];C.ntcs=r.ntcs||[];C.depts=r.depts||[];
-  C.groups=r.groups||[];C.grades=r.grades||[];C.managers=r.managers||[];C.level=r.level;
-  if(r.perms)C.perms=r.perms;
-  // grades는 서버에서만 관리 - 클라이언트 fallback 없음
+  C.grades   = r.grades   || [];
+  C.groups   = r.groups   || [];
+  C.managers = r.managers || [];
+  C.depts    = r.depts    || [];
+  C.ntcs     = r.ntcs     || [];
+  C.schs     = r.schs     || [];
+  C.level    = r.level;
+  if(r.perms) C.perms = r.perms;
+
+  // ── 등급 정규화 맵 ──
+  // id → true, 이름소문자 → id
+  var gradeById  = {};
+  var gradeByName= {};
+  C.grades.forEach(function(g){
+    gradeById[String(g.id)] = g;
+    gradeByName[String(g.name).toLowerCase()] = String(g.id);
+  });
+  // 구버전 키워드 → 이름 매핑
+  var legacyMap = {vvip:"vvip", vip:"vip", general:"일반", "일반":"일반"};
+  var lastGradeId = C.grades.length ? String(C.grades[C.grades.length-1].id) : "";
+  // 정렬해서 진짜 마지막(lowest priority)
+  var sortedG = C.grades.slice().sort(function(a,b){
+    return (parseInt(a.sortOrder)||0)-(parseInt(b.sortOrder)||0);
+  });
+  if(sortedG.length) lastGradeId = String(sortedG[sortedG.length-1].id);
+
+  // ── 그룹 정규화 맵 ──
+  var groupById = {};
+  C.groups.forEach(function(g){ groupById[String(g.id)] = true; });
+
+  // ── VIP 정규화 ──
+  C.vips = (r.vips||[]).map(function(v){
+    // gradeId 정규화
+    var gid = String(v.gradeId||"");
+    if(!gid || !gradeById[gid]){
+      // 1) gradeId가 이름인 경우 (구버전 "vvip","vip" 등)
+      var byName = gradeByName[gid.toLowerCase()];
+      // 2) legacy 매핑
+      if(!byName) byName = gradeByName[(legacyMap[gid.toLowerCase()]||"").toLowerCase()];
+      // 3) 구버전 grade 필드
+      if(!byName){
+        var oldGrade = String(v.grade||"").toLowerCase();
+        byName = gradeByName[oldGrade] || gradeByName[(legacyMap[oldGrade]||"").toLowerCase()];
+      }
+      v.gradeId = byName || lastGradeId;
+    }
+    // groupId 정규화
+    if(v.groupId && !groupById[String(v.groupId)]){
+      v.groupId = "";
+    }
+    return v;
+  });
 }
 function doLogin(){
   var pw=document.getElementById("pwin").value;if(!pw)return;
