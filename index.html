@@ -631,7 +631,18 @@ var DN=["일","월","화","수","목","금","토"];
 var PALETTE=["#f87171","#fb923c","#fbbf24","#a3e635","#34d399","#22d3ee","#60a5fa","#818cf8","#c084fc","#f472b6","#94a3b8","#6366f1","#0ea5e9","#10b981"];
 
 // ═══ 등급 헬퍼 ═══
-function getGrd(id){if(!id)return C.grades[C.grades.length-1]||{id:"",name:"일반",color:"#94a3b8",sortOrder:99};var g=C.grades.filter(function(g){return String(g.id)===String(id);})[0];return g||(C.grades[C.grades.length-1]||{id:"",name:"일반",color:"#94a3b8",sortOrder:99});}
+function getGrd(id){
+  // id가 없으면 sortOrder 가장 높은(마지막) 등급 반환
+  if(!id||id===""){
+    var last=gradesSorted();return last[last.length-1]||{id:"",name:"일반",color:"#94a3b8",sortOrder:99};
+  }
+  var g=C.grades.filter(function(g){return String(g.id)===String(id);})[0];
+  if(g)return g;
+  // id가 있지만 못 찾으면 (구버전 "vvip" 문자열 등) 이름으로 찾기
+  var byName=C.grades.filter(function(g){return g.name.toLowerCase()===String(id).toLowerCase();})[0];
+  if(byName)return byName;
+  var last2=gradesSorted();return last2[last2.length-1]||{id:"",name:"일반",color:"#94a3b8",sortOrder:99};
+}
 function gradesSorted(){return C.grades.slice().sort(function(a,b){return(parseInt(a.sortOrder)||0)-(parseInt(b.sortOrder)||0);});}
 
 // ═══ API ═══
@@ -973,11 +984,22 @@ function toggleVipView(){
 function renderVipList(){
   var q=document.getElementById("vipSrch")?document.getElementById("vipSrch").value:"";
   var list=C.vips.slice();
-  if(vipFlt==="all"){}
-  else{
+  if(vipFlt==="all"){
+    // 전체: 아무 필터 없음
+  }else if(vipFlt==="grp_all"){
+    // 그룹 있는 VIP 전체
+    list=list.filter(function(v){return v.groupId&&String(v.groupId)!=="";});
+  }else{
     var isGradeFilter=C.grades.some(function(g){return String(g.id)===String(vipFlt);});
-    if(isGradeFilter)list=list.filter(function(v){return String(v.gradeId)===String(vipFlt);});
-    else list=list.filter(function(v){return String(v.groupId)===String(vipFlt);});
+    if(isGradeFilter){
+      list=list.filter(function(v){
+        var vGradeId=String(v.gradeId||"");
+        return vGradeId===String(vipFlt);
+      });
+    }else{
+      // 그룹 ID로 필터
+      list=list.filter(function(v){return String(v.groupId||"")===String(vipFlt);});
+    }
   }
   if(q)list=list.filter(function(v){return v.name.indexOf(q)>=0||(v.dept||"").indexOf(q)>=0||(v.pos||"").indexOf(q)>=0;});
   var el=document.getElementById("vipList");if(!el)return;
@@ -1035,68 +1057,34 @@ function vipCard(v,showCb){
     (!showCb?"<span style='color:var(--dm);font-size:20px'>›</span>":"")+
   "</div>";
 }
-function fltVip(g,btn){
-  vipFlt=g;document.querySelectorAll(".gtb").forEach(function(b){b.className="gtb";});
-  if(btn)btn.className="gtb ga";renderVipList();
+function fltVip(g){
+  vipFlt=g;renderVipList();buildVipFltBtns();
 }
 function buildVipFltBtns(){
-  var btns="<button class='gtb"+(vipFlt==="all"?" ga":"")+"' onclick=\"fltVip('all',this)\">전체</button>";
-  gradesSorted().forEach(function(g){btns+="<button class='gtb"+(vipFlt===String(g.id)?" ga":"")+"' style='border-color:"+g.color+"50;color:"+g.color+"' onclick=\"fltVip('"+g.id+"',this)\">"+g.name+"</button>";});
-  C.groups.forEach(function(g){btns+="<button class='gtb"+(vipFlt===String(g.id)?" ga":"")+"' style='border-color:"+g.color+"50;color:"+g.color+"' onclick=\"fltVip('"+g.id+"',this)\">"+g.name+"</button>";});
-  document.getElementById("vipFltBtns").innerHTML=btns;
-}
-
-// ── 그룹 목록 ──
-function renderGrpList(){
-  buildVipFltBtns();
-  var el=document.getElementById("grpList");if(!el)return;
-  if(!C.groups.length){el.innerHTML=empH("등록된 그룹이 없습니다");return;}
-  el.innerHTML=C.groups.map(function(g){
-    var cnt=C.vips.filter(function(v){return String(v.groupId)===String(g.id);}).length;
-    var cbHtml=bulkMode.grp?"<input type='checkbox' class='bulk-cb-grp' value='"+g.id+"' onclick='event.stopPropagation()' style='width:18px;height:18px;accent-color:var(--ac);margin-right:4px'>":"";
-    return"<div class='lcard'>"+(bulkMode.grp?"<div class='cb-wrap'>"+cbHtml+"</div>":"")+
-      "<div style='width:20px;height:20px;border-radius:50%;background:"+g.color+";flex-shrink:0'></div>"+
-      "<div style='flex:1'><div style='font-size:14px;font-weight:700'>"+g.name+"</div>"+(g.desc?"<div style='font-size:12px;color:var(--mt)'>"+g.desc+"</div>":"")+"</div>"+
-      "<span style='font-size:12px;color:var(--mt);margin-right:8px'>"+cnt+"명</span>"+
-      "<button class='bs' style='margin-right:6px' onclick=\"openGrpMod('"+g.id+"')\">수정</button>"+
-      "<button class='bsd' onclick=\"delGrp('"+g.id+"')\">삭제</button></div>";
-  }).join("");
-}
-
-// ── 등급 목록 ──
-function renderGrdList(){
-  var el=document.getElementById("grdList");if(!el)return;
-  var list=gradesSorted();if(!list.length){el.innerHTML=empH("등록된 등급이 없습니다");return;}
-  el.innerHTML=list.map(function(g){
-    var cnt=C.vips.filter(function(v){return String(v.gradeId)===String(g.id);}).length;
-    return"<div class='grade-card'><div class='grade-swatch' style='background:"+g.color+"'></div>"+
-      "<div style='flex:1'><div style='font-size:14px;font-weight:700;color:"+g.color+"'>"+g.name+"</div><div style='font-size:12px;color:var(--mt)'>"+cnt+"명 · 순서 "+g.sortOrder+"</div></div>"+
-      "<button class='bs' style='margin-right:6px' onclick=\"openGrdMod('"+g.id+"')\">수정</button>"+
-      "<button class='bsd' onclick=\"delGrd('"+g.id+"')\">삭제</button></div>";
-  }).join("");
-}
-
-// ── 진료과 목록 ──
-function renderDptList(){
-  var el=document.getElementById("dptList");if(!el)return;
-  if(!C.depts.length){el.innerHTML=empH("등록된 진료과가 없습니다");return;}
-  el.innerHTML=C.depts.map(function(d){
-    var cbHtml=bulkMode.dpt?"<input type='checkbox' class='bulk-cb-dpt' value='"+d.id+"' onclick='event.stopPropagation()' style='width:18px;height:18px;accent-color:var(--ac);margin-right:4px'>":"";
-    return"<div class='lcard'>"+(bulkMode.dpt?"<div class='cb-wrap'>"+cbHtml+"</div>":"")+
-      "<div style='min-width:55px;font-size:14px;font-weight:700;color:var(--ac2)'>"+d.abbr+"</div>"+
-      "<div style='flex:1;font-size:13px;color:var(--mt)'>"+d.fullName+"</div>"+
-      "<button class='bs' style='margin-right:6px' onclick=\"openDptMod('"+d.id+"')\">수정</button>"+
-      "<button class='bsd' onclick=\"delDpt('"+d.id+"')\">삭제</button></div>";
-  }).join("");
-}
-
-// ── 담당자 ──
-function renderMgrList(){
-  var el=document.getElementById("mgrList");if(!el)return;
-  if(!C.managers.length){el.innerHTML=empH("등록된 담당자가 없습니다");return;}
-  el.innerHTML=C.managers.map(function(m){
-    return"<div class='lcard'><span style='font-size:14px;font-weight:600;flex:1'>"+m.name+"</span><button class='bsd' onclick=\"delMgr('"+m.id+"')\">삭제</button></div>";
-  }).join("");
+  var el=document.getElementById("vipFltBtns");if(!el)return;
+  var parts=[];
+  // 등급 섹션
+  parts.push('<div style="font-size:10px;font-weight:700;color:var(--mt);letter-spacing:.5px;margin-bottom:5px">등급</div>');
+  parts.push('<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">');
+  parts.push('<button class="gtb'+(vipFlt==="all"?" ga":"")+'" data-fid="all">전체</button>');
+  gradesSorted().forEach(function(g){
+    var sel=String(vipFlt)===String(g.id);
+    parts.push('<button class="gtb'+(sel?" ga":"")+'" data-fid="'+g.id+'" style="border-color:'+g.color+'60;color:'+g.color+(sel?';background:'+g.color+'20':'')+'">'+ g.name+'</button>');
+  });
+  parts.push('</div>');
+  // 그룹 섹션
+  if(C.groups.length){
+    parts.push('<div style="font-size:10px;font-weight:700;color:var(--mt);letter-spacing:.5px;margin-bottom:5px">그룹</div>');
+    parts.push('<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">');
+    parts.push('<button class="gtb'+(vipFlt==="grp_all"?" ga":"")+'" data-fid="grp_all">그룹 전체</button>');
+    C.groups.forEach(function(g){
+      var sel=String(vipFlt)===String(g.id);
+      parts.push('<button class="gtb'+(sel?" ga":"")+'" data-fid="'+g.id+'" style="border-color:'+g.color+'60;color:'+g.color+(sel?';background:'+g.color+'20':'')+'">'+ g.name+'</button>');
+    });
+    parts.push('</div>');
+  }
+  el.innerHTML=parts.join('');
+  // 이벤트는 위임으로 처리 (onclick 대신)
 }
 function addMgr(){var name=document.getElementById("mgrInp").value.trim();if(!name)return;setLd(true,"저장 중...");callApi("saveMgr",{row:{name:name}},function(err,r){setLd(false);if(err||r.error){alert("저장 실패.");return;}document.getElementById("mgrInp").value="";doRefresh();});}
 function delMgr(id){if(!confirm("담당자를 삭제하시겠습니까?"))return;setLd(true,"삭제 중...");callApi("delMgr",{id:id},function(err){if(err){alert("삭제 실패.");setLd(false);return;}doRefresh();});}
@@ -1368,6 +1356,14 @@ function expired(n){return n.expiry&&new Date(String(n.expiry)+"T23:59:59")<new 
 function isAdmitted(vid){var ts=ds(new Date());return C.schs.some(function(s){return String(s.vipId)===String(vid)&&s.type==="admission"&&dstr(s.date)<=ts&&(!s.endDate||dstr(s.endDate)>=ts);});}
 
 document.querySelectorAll(".ov").forEach(function(m){m.addEventListener("click",function(e){if(e.target===m)m.classList.remove("op");});});
+// 등급/그룹 필터 버튼 이벤트 위임
+document.addEventListener("click",function(e2){
+  var fb=e2.target.closest("[data-fid]");
+  if(fb&&document.getElementById("vipFltBtns")&&document.getElementById("vipFltBtns").contains(fb)){
+    vipFlt=fb.getAttribute("data-fid");
+    renderVipList();buildVipFltBtns();
+  }
+});
 document.getElementById("pwin").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
 document.getElementById("swPw").addEventListener("keydown",function(e){if(e.key==="Enter")doPwSw();});
 window.addEventListener("load",function(){var t=localStorage.getItem("vip_theme")||"dark";applyTheme(t);buildThemeGrid();setTimeout(function(){applyTheme(t);},100);});
