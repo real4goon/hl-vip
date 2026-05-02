@@ -767,7 +767,7 @@ function doLogin(){
     setLd(false);
     if(err){showErr("lerr","연결 오류");PW="";return;}
     if(r.error==="unauthorized"){showErr("lerr","비밀번호가 올바르지 않습니다.");PW="";return;}
-    applyData(r);initApp();
+    applyData(r);sessionStorage.setItem('vip_pw',PW);sessionStorage.setItem('vip_level',r.level);initApp();
   });
 }
 function openPwSw(){document.getElementById("swLv").textContent=C.level==="admin"?"관리자":"일반 직원";document.getElementById("swPw").value="";document.getElementById("swErr").style.display="none";openM("mPwSw");}
@@ -809,7 +809,7 @@ function doRefresh(){
 }
 function doLogout(){
   if(!confirm("로그아웃 하시겠습니까?"))return;
-  PW="";C={vips:[],schs:[],ntcs:[],depts:[],groups:[],grades:[],managers:[],level:null,perms:{phone:false,note:false}};
+  PW="";sessionStorage.removeItem('vip_pw');sessionStorage.removeItem('vip_level');C={vips:[],schs:[],ntcs:[],depts:[],groups:[],grades:[],managers:[],level:null,perms:{phone:false,note:false}};
   document.getElementById("ls").style.display="flex";document.getElementById("app").style.display="none";
   document.getElementById("pwin").value="";document.getElementById("lerr").style.display="none";
 }
@@ -1677,7 +1677,21 @@ function handleApiErr(err,r,label){
   return false;
 }
 
-window.addEventListener("load",function(){var t=localStorage.getItem("vip_theme")||"dark";applyTheme(t);buildThemeGrid();setTimeout(function(){applyTheme(t);},100);});
+window.addEventListener("load",function(){
+  var t=localStorage.getItem("vip_theme")||"dark";applyTheme(t);buildThemeGrid();setTimeout(function(){applyTheme(t);},100);
+  // 새로고침 후 자동 재로그인
+  var savedPw=sessionStorage.getItem('vip_pw');
+  if(savedPw){
+    PW=savedPw;
+    document.getElementById("ltxt").textContent="자동 로그인 중...";
+    document.getElementById("lo").style.display="flex";
+    callApi("getAll",null,function(err,r){
+      document.getElementById("lo").style.display="none";
+      if(!err&&!r.error){applyData(r);initApp();}
+      else{PW="";sessionStorage.removeItem('vip_pw');}
+    });
+  }
+});
 window.addEventListener("resize",function(){if(curPg==="Cal")renderGT(calDt.getFullYear(),calDt.getMonth());});
 </script>
 </body>
