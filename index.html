@@ -365,7 +365,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
         <div class="stabs">
           <button class="stab on" onclick="setAS('vip',this)">명단</button>
           <button class="stab" onclick="setAS('grp',this)">그룹</button>
-          <button class="stab" onclick="setAS('grd',this)">등급</button>
+          <button class="stab" onclick="setAS('grd',this)">등급 <span id="grdTabCnt"></span></button>
           <button class="stab" onclick="setAS('dpt',this)">진료과</button>
           <button class="stab" onclick="setAS('mgr',this)">담당자</button>
         </div>
@@ -805,7 +805,17 @@ function updateLvUI(){
 function doRefresh(){
   setLd(true,"새로고침 중...");
   callApi("getAll",null,function(err,r){
-    setLd(false);if(!err&&!r.error){applyData(r);setSS(true,"Google Sheets 연동됨 · "+fmtT(new Date())+" 동기화");renderAll();}
+    setLd(false);
+    if(!err&&!r.error){
+      // 응답에 grades가 있는지 확인
+      console.log("grades 수신:", r.grades?r.grades.length:"없음", "depts:", r.depts?r.depts.length:"없음");
+      if(!r.grades||!r.grades.length){
+        console.warn("grades 배열 비어있음 - API 응답:", JSON.stringify(r).slice(0,300));
+      }
+      applyData(r);
+      setSS(true,"Google Sheets 연동됨 · "+fmtT(new Date())+" 동기화 (등급:"+C.grades.length+"개)");
+      renderAll();
+    }
     else setSS(false,"연결 오류 · 새로고침 버튼을 눌러주세요");
   });
 }
@@ -838,7 +848,11 @@ function setAS(sub,btn){
   // 탭 전환 시 해당 목록 재렌더
   if(sub==="vip")renderVipList();
   else if(sub==="grp")renderGrpList();
-  else if(sub==="grd")renderGrdList();
+  else if(sub==="grd"){
+    renderGrdList();
+    // 디버그: 등급 개수 확인
+    setSS(true,"동기화됨 · 등급 "+C.grades.length+"개 로드됨");
+  }
   else if(sub==="dpt")renderDptList();
   else if(sub==="mgr")renderMgrList();
 }
@@ -1579,6 +1593,9 @@ function renderGrpList(){
 function renderGrdList(){
   var el=document.getElementById("grdList");if(!el)return;
   var list=gradesSorted();
+  // 탭 카운트 표시
+  var tc=document.getElementById("grdTabCnt");
+  if(tc)tc.textContent="("+list.length+")";
   if(!list.length){
     el.innerHTML="<div class='emp'><p style='margin-bottom:12px'>등록된 등급이 없습니다</p>"+
       "<button class='bk' style='margin:0 auto;display:block' onclick='createDefaultGrades()'>기본 등급 3개 생성 (VVIP/VIP/일반)</button></div>";
