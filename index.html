@@ -621,7 +621,7 @@ function buildThemeGrid(){
 
 // ═══ 상태 ═══
 var C={vips:[],schs:[],ntcs:[],depts:[],groups:[],grades:[],managers:[],level:null,perms:{phone:false,note:false}};
-var PW="",curPg="Home",calDt=new Date(),calSel=null;
+var PW=localStorage.getItem("vip_pw")||"",curPg="Home",calDt=new Date(),calSel=null;
 var editSchId=null,editVipId=null,editDptId=null,editGrpId=null,editGrdId=null,chgPwType=null;
 var vipFlt="all",aSub="vip",mobView=0,vipViewMode="list";
 var bulkMode={vip:false,ntc:false,grp:false,dpt:false};
@@ -683,6 +683,8 @@ function gradesSorted(){return C.grades.slice().sort(function(a,b){return(parseI
 
 // ═══ API ═══
 function callApi(action,extra,cb){
+  // PW가 비어있으면 localStorage에서 복원
+  if(!PW) PW=localStorage.getItem("vip_pw")||"";
   var p={action:action,pw:PW};if(extra)for(var k in extra)p[k]=extra[k];
   var url=API_URL+"?p="+encodeURIComponent(JSON.stringify(p));
   console.log("[API요청]",action,"pw="+PW,"level="+C.level);
@@ -767,7 +769,7 @@ function doLogin(){
     setLd(false);
     if(err){showErr("lerr","연결 오류");PW="";return;}
     if(r.error==="unauthorized"){showErr("lerr","비밀번호가 올바르지 않습니다.");PW="";return;}
-    applyData(r);sessionStorage.setItem('vip_pw',PW);sessionStorage.setItem('vip_level',r.level);initApp();
+    applyData(r);localStorage.setItem('vip_pw',PW);localStorage.setItem('vip_level',r.level);initApp();
   });
 }
 function openPwSw(){document.getElementById("swLv").textContent=C.level==="admin"?"관리자":"일반 직원";document.getElementById("swPw").value="";document.getElementById("swErr").style.display="none";openM("mPwSw");}
@@ -809,7 +811,7 @@ function doRefresh(){
 }
 function doLogout(){
   if(!confirm("로그아웃 하시겠습니까?"))return;
-  PW="";sessionStorage.removeItem('vip_pw');sessionStorage.removeItem('vip_level');C={vips:[],schs:[],ntcs:[],depts:[],groups:[],grades:[],managers:[],level:null,perms:{phone:false,note:false}};
+  PW="";localStorage.removeItem('vip_pw');localStorage.removeItem('vip_level');C={vips:[],schs:[],ntcs:[],depts:[],groups:[],grades:[],managers:[],level:null,perms:{phone:false,note:false}};
   document.getElementById("ls").style.display="flex";document.getElementById("app").style.display="none";
   document.getElementById("pwin").value="";document.getElementById("lerr").style.display="none";
 }
@@ -1003,13 +1005,10 @@ function renderGT(y,m){
     var admitted=isAdmitted(v.id);
     var admPs=admMap[String(v.id)]||[];
     var grp=getGrpById(v.groupId);
-    var row="<tr><td class='gtd-name' onclick=\"openVipDet('"+v.id+"')\">"+
-      "<div style='display:flex;align-items:center;gap:3px;overflow:hidden'><span style='font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;max-width:44px;color:"+col+"'>"+v.name+"</span></div>"+
-      "<div style='display:flex;align-items:center;gap:2px;margin-top:1px;flex-wrap:wrap'>"+
-      "<span style='font-size:9px;font-weight:600;color:"+col+"'>"+grd.name+"</span>"+
+    var row="<tr><td class='gtd-name' onclick=\"openVipDet('"+v.id+"')\">" +
+      "<div style='overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:700;color:"+col+"'>"+v.name+"</div>"+
       (admitted?"<span class='aon' style='font-size:8px;padding:1px 3px'>입원</span>":"")+
-      (grp?"<span style='font-size:8px;font-weight:600;padding:1px 4px;border-radius:8px;color:#fff;background:"+grp.color+"'>"+grp.name+"</span>":"")+
-      "</div></td>";
+      "</td>";
     for(var d=1;d<=ld;d++){
       var dstrC=y+"-"+p2(m+1)+"-"+p2(d);
       var isT=isThisMon&&d===tD;var isPast=dstrC<ts;
@@ -1680,7 +1679,7 @@ function handleApiErr(err,r,label){
 window.addEventListener("load",function(){
   var t=localStorage.getItem("vip_theme")||"dark";applyTheme(t);buildThemeGrid();setTimeout(function(){applyTheme(t);},100);
   // 새로고침 후 자동 재로그인
-  var savedPw=sessionStorage.getItem('vip_pw');
+  var savedPw=localStorage.getItem('vip_pw');
   if(savedPw){
     PW=savedPw;
     document.getElementById("ltxt").textContent="자동 로그인 중...";
@@ -1688,7 +1687,7 @@ window.addEventListener("load",function(){
     callApi("getAll",null,function(err,r){
       document.getElementById("lo").style.display="none";
       if(!err&&!r.error){applyData(r);initApp();}
-      else{PW="";sessionStorage.removeItem('vip_pw');}
+      else{PW="";localStorage.removeItem('vip_pw');}
     });
   }
 });
