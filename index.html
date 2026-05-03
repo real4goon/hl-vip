@@ -1330,9 +1330,12 @@ function openVipDet(vid){
     "</div>";
   }).join(""):"<div style='font-size:13px;color:var(--mt);padding:8px 0'>방문 이력 없음</div>";
 
-  // VIP 상세에서는 VIP 삭제 없음 - 수정 + 일정추가만
   var ab="<div class='ma' style='margin-top:18px'>"+
-    (C.level==="admin"?"<button class='bc' onclick=\"closeM('mVipDet');openVipMod('"+vid+"')\">VIP 수정</button><button class='bk' style='flex:1.5' onclick=\"closeM('mVipDet');openSchMod(null,null)\">일정 추가</button>":"<button class='bc' style='width:100%' onclick=\"closeM('mVipDet')\">닫기</button>")+
+    (C.level==="admin"?
+      "<button class='bd' onclick=\"delVip('"+vid+"')\">삭제</button>"+
+      "<button class='bc' onclick=\"closeM('mVipDet');openVipMod('"+vid+"')\">수정</button>"+
+      "<button class='bk' style='flex:1.5' onclick=\"closeM('mVipDet');openSchMod(null,null)\">일정 추가</button>":
+      "<button class='bc' style='width:100%' onclick=\"closeM('mVipDet')\">닫기</button>")+
     "</div>";
 
   document.getElementById("vipDet").innerHTML=
