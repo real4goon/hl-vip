@@ -134,12 +134,15 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 .mob-tb.on{background:var(--ac);color:#fff}
 .sch-dual{display:flex;gap:12px;align-items:flex-start}
 .sch-left{width:100%;display:none;flex-shrink:0}
-.sch-right{flex:1;min-width:0;display:none}
+.sch-right{flex:1;min-width:0;display:none;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .sch-left.show{display:block}
 .sch-right.show{display:block}
+/* 달력 접기 버튼 */
+.cal-tog-btn{background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);padding:5px 10px;cursor:pointer;font-size:11px;font-weight:700;color:var(--mt);white-space:nowrap}
+.cal-tog-btn.active{background:var(--ac);color:#fff;border-color:var(--ac)}
 @media(min-width:700px){
   .mob-tog{display:none}
-  .sch-left{display:block!important;width:42%}
+  .sch-left{display:block!important;width:340px;flex-shrink:0}
   .sch-right{display:block!important}
 }
 /* 클래식 달력 */
@@ -160,7 +163,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 .chip{font-size:9px;padding:2px 4px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;display:block;cursor:pointer;border-left:2px solid transparent}
 .cmore{font-size:9px;color:var(--mt);font-weight:600;padding:1px 3px}
 /* VIP×날짜 그리드 */
-.gt-outer{width:100%;overflow:hidden;border:1px solid var(--bd);border-radius:var(--r);background:var(--cd)}
+.gt-outer{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--bd);border-radius:var(--r);background:var(--cd)}
 .gt-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .gt{border-collapse:collapse;white-space:nowrap}
 .gt th,.gt td{border:1px solid var(--bd);padding:0;overflow:hidden}
@@ -317,6 +320,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
         <button class="cbtn" onclick="calMove(-1)">&#8249;</button>
         <div class="cmon" id="calMon"></div>
         <button class="cbtn" onclick="calMove(1)">&#8250;</button>
+        <button class="cal-tog-btn" id="calTogBtn" onclick="toggleCalView()" title="달력 접기/펼치기" style="margin-left:8px">달력 ◀</button>
       </div>
       <div class="mob-tog">
         <button class="mob-tb on" id="mtb0" onclick="setMV(0)">달력</button>
@@ -1047,17 +1051,19 @@ function renderGT(y,m){
   if(!vlist.length)tb="<tr><td colspan='32' style='text-align:center;padding:20px;color:var(--mt)'>등록된 VIP가 없습니다</td></tr>";
   document.getElementById("gtHead").innerHTML=th;
   document.getElementById("gtBody").innerHTML=tb;
-  // 그리드 폭 계산 - 스크롤 없이 한달치
+  // 그리드 셀 폭 계산
   setTimeout(function(){
     var outer=document.getElementById("schRight");if(!outer)return;
-    var avail=outer.offsetWidth||300;
-    var nameW=70;var cellW=Math.max(22,Math.floor((avail-nameW-2)/ld));
+    var avail=outer.offsetWidth||400;
+    var nameW=70;
+    // 가용 폭에 맞게 셀 크기 결정, 최소 24px
+    var cellW=Math.max(24,Math.floor((avail-nameW-2)/ld));
     var tbl=document.getElementById("gtTable");if(!tbl)return;
-    tbl.style.width=(nameW+cellW*ld)+"px";
+    // 전체 폭이 화면보다 크면 스크롤 허용, 작으면 꽉 채움
+    var totalW=nameW+cellW*ld;
+    tbl.style.width=totalW+"px";
     var ths=document.getElementById("gtHead").querySelectorAll("th");
     ths.forEach(function(th,i){th.style.width=(i===0?nameW:cellW)+"px";th.style.minWidth=(i===0?nameW:cellW)+"px";});
-    // 스크롤 숨기기
-    var scroll=document.querySelector(".gt-scroll");if(scroll)scroll.style.overflowX="hidden";
   },50);
 }
 
@@ -1702,6 +1708,23 @@ function handleApiErr(err,r,label){
     return true;
   }
   return false;
+}
+
+
+var calVisible=true;
+function toggleCalView(){
+  calVisible=!calVisible;
+  var btn=document.getElementById("calTogBtn");
+  var left=document.getElementById("schLeft");
+  if(calVisible){
+    left.style.display="block";
+    if(btn){btn.textContent="달력 ◀";btn.className="cal-tog-btn";}
+  }else{
+    left.style.display="none";
+    if(btn){btn.textContent="▶ 달력";btn.className="cal-tog-btn active";}
+  }
+  // 그리드 폭 재계산
+  setTimeout(function(){renderGT(calDt.getFullYear(),calDt.getMonth());},50);
 }
 
 window.addEventListener("load",function(){
