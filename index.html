@@ -293,10 +293,10 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
       <span class="lvb" id="lvb"></span>
       <button class="ic" onclick="openPwSw()">&#128272;</button>
       <button class="ic" onclick="doRefresh()">&#128260;</button>
-      <button class="ic" onclick="doLogout()">&#9211;</button>
+      <button class="ic" onclick="doLogout()" title="로그아웃 (비밀번호 재입력)">&#9211;</button>
     </div>
   </div>
-  <div class="syb"><div class="syd" id="syd"></div><span id="sytxt">연결 중...</span></div>
+  <div class="syb"><div class="syd" id="syd"></div><span id="sytxt">연결 중...</span><span id="lvTxt" style="margin-left:auto;font-size:11px;font-weight:700"></span></div>
 
   <div class="pgs">
     <!-- 홈 -->
@@ -452,7 +452,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
         <div class="si2"><div><div class="sl">데이터 저장소</div><div class="ssb">Google Sheets</div></div><button class="bs" onclick="doRefresh()">새로고침</button></div>
       </div>
       <div class="stl2">앱 정보</div>
-      <div class="ss"><div class="si2"><div><div class="sl">VIP 관리 시스템</div><div class="ssb">v4.4 · 원무팀 전용</div></div></div></div>
+      <div class="ss"><div class="si2"><div><div class="sl">VIP 관리 시스템</div><div class="ssb">v4.5 · 원무팀 전용</div></div></div></div>
     </div></div>
   </div>
 
@@ -698,7 +698,12 @@ function callApi(action,extra,cb){
   });
 }
 function setLd(on,txt){document.getElementById("lo").style.display=on?"flex":"none";if(txt)document.getElementById("ltxt").textContent=txt;}
-function setSS(ok,txt){document.getElementById("syd").className="syd"+(ok?"":" e");document.getElementById("sytxt").textContent=txt;}
+function setSS(ok,txt){
+  document.getElementById("syd").className="syd"+(ok?"":" e");
+  document.getElementById("sytxt").textContent=txt;
+  var lt=document.getElementById("lvTxt");
+  if(lt)lt.textContent=C.level==="admin"?"[관리자]":C.level==="staff"?"[일반]":"";
+}
 function openM(id){document.getElementById(id).classList.add("op");}
 function closeM(id){document.getElementById(id).classList.remove("op");}
 function showErr(id,msg){var e=document.getElementById(id);e.textContent=msg;e.style.display="block";}
@@ -1514,33 +1519,35 @@ document.addEventListener("click",function(e2){
   if(fb&&document.getElementById("vipFltBtns")&&document.getElementById("vipFltBtns").contains(fb)){
     vipFlt=fb.getAttribute("data-fid");renderVipList();buildVipFltBtns();return;
   }
-  // 그룹 토글
-  var tog=e2.target.closest("[data-grptog]");
-  if(tog){var gid=tog.getAttribute("data-grptog");openGrpSecs[gid]=!openGrpSecs[gid];renderGrpList();return;}
+  // ★ 버튼류 먼저 체크 (토글 div 안에 있어서 순서 중요)
   // 그룹 수정
   var edit=e2.target.closest("[data-grpedit]");
   if(edit){e2.stopPropagation();openGrpMod(edit.getAttribute("data-grpedit"));return;}
   // 그룹 삭제
   var del=e2.target.closest("[data-grpdel]");
   if(del){e2.stopPropagation();delGrp(del.getAttribute("data-grpdel"));return;}
-  // 등급 토글
-  var gtog=e2.target.closest("[data-grdtog]");
-  if(gtog){var gid2=gtog.getAttribute("data-grdtog");openGrdSecs[gid2]=!openGrdSecs[gid2];renderGrdList();return;}
   // 등급 수정
   var gedit=e2.target.closest("[data-grdedit]");
   if(gedit){e2.stopPropagation();openGrdMod(gedit.getAttribute("data-grdedit"));return;}
   // 등급 삭제
   var gdel=e2.target.closest("[data-grddel]");
   if(gdel){e2.stopPropagation();delGrd(gdel.getAttribute("data-grddel"));return;}
+  // 멤버 제거
+  var rem=e2.target.closest("[data-grprem]");
+  if(rem){e2.stopPropagation();removeFromGrp(rem.getAttribute("data-grprem"));return;}
+  // 멤버 전체 제거
+  var remAll=e2.target.closest("[data-grpremall]");
+  if(remAll){e2.stopPropagation();bulkRemoveFromGrp(remAll.getAttribute("data-grpremall"));return;}
+  // 그룹 토글 (버튼 아닐 때만)
+  var tog=e2.target.closest("[data-grptog]");
+  if(tog&&e2.target.tagName!=="BUTTON"){var gid=tog.getAttribute("data-grptog");openGrpSecs[gid]=!openGrpSecs[gid];renderGrpList();return;}
+  // 등급 토글 (버튼 아닐 때만)
+  var gtog=e2.target.closest("[data-grdtog]");
+  if(gtog&&e2.target.tagName!=="BUTTON"){var gid2=gtog.getAttribute("data-grdtog");openGrdSecs[gid2]=!openGrdSecs[gid2];renderGrdList();return;}
   // VIP 상세 (등급탭에서)
   var vdet=e2.target.closest("[data-vipdet]");
   if(vdet){openVipDet(vdet.getAttribute("data-vipdet"));return;}
-    // 멤버 제거
-  var rem=e2.target.closest("[data-grprem]");
-  if(rem){removeFromGrp(rem.getAttribute("data-grprem"));return;}
-  // 전체 제거
-  var remAll=e2.target.closest("[data-grpremall]");
-  if(remAll){bulkRemoveFromGrp(remAll.getAttribute("data-grpremall"));return;}
+  
 });
 document.getElementById("pwin").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
 document.getElementById("swPw").addEventListener("keydown",function(e){if(e.key==="Enter")doPwSw();});
