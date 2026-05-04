@@ -365,19 +365,24 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 
       <!-- ── 개인 조회/등록 뷰 ── -->
       <div id="schViewVip" style="display:none">
-        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+        <!-- 검색창 -->
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
           <div style="flex:1;position:relative">
-            <input type="text" id="vipPickSearch" placeholder="이름 검색..." oninput="filterVipPick()" onfocus="filterVipPick()" autocomplete="off"
+            <input type="text" id="vipPickSearch" placeholder="&#128269; 이름 검색..." oninput="onVipSearch()" onfocus="onVipSearchFocus()" autocomplete="off"
               style="width:100%;padding:11px 13px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:14px;outline:none;min-height:44px">
-            <div id="vipPickDrop" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--sf);border:1px solid var(--ac);border-radius:var(--rs);z-index:100;max-height:240px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.3)"></div>
+            <div id="vipPickDrop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sf);border:1px solid var(--ac);border-radius:var(--rs);z-index:200;max-height:260px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.3)"></div>
           </div>
           <button class="badd" id="vipSchAddBtn" onclick="openSchModForVip()" style="display:none">+ 일정 추가</button>
         </div>
-        <div id="vipPickSelected" style="display:none;margin-bottom:10px">
-          <span style="font-size:11px;color:var(--mt)">선택된 대상자: </span>
-          <span id="vipPickName" style="font-size:13px;font-weight:700;color:var(--ac2)"></span>
-          <button onclick="clearVipPick()" style="margin-left:8px;background:none;border:none;color:var(--mt);cursor:pointer;font-size:12px">✕ 변경</button>
+        <!-- 선택된 대상자 -->
+        <div id="vipPickSelected" style="display:none;margin-bottom:10px;background:var(--acl);border:1px solid var(--ac);border-radius:var(--rs);padding:8px 12px;align-items:center;gap:8px">
+          <span style="font-size:12px;color:var(--mt)">선택:</span>
+          <span id="vipPickName" style="font-size:13px;font-weight:700;color:var(--ac2);flex:1"></span>
+          <button onclick="clearVipPick()" style="background:none;border:none;color:var(--mt);cursor:pointer;font-size:16px">✕</button>
         </div>
+        <!-- 예정 있는 대상자 목록 -->
+        <div id="vipUpcomingList"></div>
+        <!-- 선택된 대상자 상세 -->
         <div id="vipPickInfo" style="display:none;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:12px"></div>
         <div id="vipSchTimeline"></div>
       </div>
@@ -1987,7 +1992,8 @@ function onVipSearchFocus(){
 
 function renderUpcomingList(){
   var el=document.getElementById("vipUpcomingList");
-  if(!el)return;
+  if(!el){console.error("vipUpcomingList 없음");return;}
+  console.log("renderUpcomingList:", C.vips.length, "vips,", C.schs.length, "schs");
   var today=ds(new Date());
   var upcoming=[];
   C.vips.forEach(function(v){
