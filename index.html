@@ -323,6 +323,13 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 
     <!-- 스케줄 -->
     <div class="pg" id="pCal"><div class="pi">
+      <!-- 스케줄 뷰 전환 -->
+      <div style="display:flex;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);padding:3px;gap:3px;margin-bottom:12px">
+        <button class="mob-tb on" id="schTabCal" onclick="setSchTab('cal')" style="flex:1">📅 달력</button>
+        <button class="mob-tb" id="schTabVip" onclick="setSchTab('vip')" style="flex:1">👤 개인 조회/등록</button>
+      </div>
+      <!-- 달력 뷰 -->
+      <div id="schViewCal">
       <div class="sch-nav">
         <button class="cbtn" onclick="calMove(-1)">&#8249;</button>
         <div class="cmon" id="calMon"></div>
@@ -352,7 +359,23 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
         <div class="sch-right show" id="schRight">
           <div class="gt-outer"><div class="gt-scroll"><table class="gt" id="gtTable"><thead id="gtHead"></thead><tbody id="gtBody"></tbody></table></div></div>
         </div>
+      </div><!-- /schViewCal -->
+
+      <!-- 개인 조회/등록 뷰 -->
+      <div id="schViewVip" style="display:none">
+        <!-- VIP 선택 -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+          <select id="vipPickSel" onchange="loadVipSch()" style="flex:1;padding:11px 13px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:14px;outline:none;-webkit-appearance:none;min-height:44px">
+            <option value="">-- 대상자 선택 --</option>
+          </select>
+          <button class="badd" onclick="openSchModForVip()" id="vipSchAddBtn" style="display:none">+ 일정 추가</button>
+        </div>
+        <!-- 선택된 VIP 정보 -->
+        <div id="vipPickInfo" style="display:none;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:12px"></div>
+        <!-- 일정 타임라인 -->
+        <div id="vipSchTimeline"></div>
       </div>
+
     </div></div>
 
     <!-- 공지 -->
@@ -1773,6 +1796,144 @@ function setVipSort(s){
       ?"#fff":"";
   });
   renderVipList();
+}
+
+
+// ═══ 스케줄 탭 전환 ═══
+var schTab="cal";
+function setSchTab(tab){
+  schTab=tab;
+  document.getElementById("schTabCal").className="mob-tb"+(tab==="cal"?" on":"");
+  document.getElementById("schTabVip").className="mob-tb"+(tab==="vip"?" on":"");
+  document.getElementById("schViewCal").style.display=tab==="cal"?"block":"none";
+  document.getElementById("schViewVip").style.display=tab==="vip"?"block":"none";
+  if(tab==="vip") buildVipPick();
+  if(tab==="cal"){renderCal();setTimeout(function(){renderGT(calDt.getFullYear(),calDt.getMonth());},100);}
+}
+
+function buildVipPick(){
+  var sel=document.getElementById("vipPickSel");
+  var cur=sel.value;
+  var go={};C.grades.slice().sort(function(a,b){return(parseInt(a.sortOrder)||0)-(parseInt(b.sortOrder)||0);}).forEach(function(g,i){go[g.id]=i;});
+  var list=C.vips.slice().sort(function(a,b){var ga=go[a.gradeId]||99,gb=go[b.gradeId]||99;return ga!==gb?ga-gb:String(a.name).localeCompare(String(b.name));});
+  sel.innerHTML="<option value=''>-- 대상자 선택 --</option>"+
+    list.map(function(v){return"<option value='"+v.id+"'>["+getGrd(v.gradeId).name+"] "+v.name+"</option>";}).join("");
+  if(cur) sel.value=cur;
+  if(sel.value) loadVipSch();
+}
+
+function openSchModForVip(){
+  var vid=document.getElementById("vipPickSel").value;
+  if(!vid)return;
+  openSchMod(null,null);
+  // VIP 미리 선택
+  setTimeout(function(){
+    var s=document.getElementById("sVip");
+    if(s)s.value=vid;
+  },50);
+}
+
+function loadVipSch(){
+  var vid=document.getElementById("vipPickSel").value;
+  var infoEl=document.getElementById("vipPickInfo");
+  var timeEl=document.getElementById("vipSchTimeline");
+  var addBtn=document.getElementById("vipSchAddBtn");
+
+  if(!vid){
+    infoEl.style.display="none";
+    timeEl.innerHTML="";
+    if(addBtn)addBtn.style.display="none";
+    return;
+  }
+
+  var v=getVip(vid);
+  if(!v){timeEl.innerHTML=empH("대상자 정보 없음");return;}
+
+  var col=getGrd(v.gradeId).color;
+  var grd=getGrd(v.gradeId);
+  var grp=getGrpById(v.groupId);
+
+  // VIP 정보 카드
+  infoEl.style.display="block";
+  if(addBtn&&C.level==="admin")addBtn.style.display="block";
+  infoEl.innerHTML=
+    "<div style='display:flex;align-items:center;gap:12px'>"+
+    "<div style='width:44px;height:44px;border-radius:50%;background:"+col+"20;color:"+col+";border:2px solid "+col+"50;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0'>"+String(v.name).slice(-2)+"</div>"+
+    "<div style='flex:1'>"+
+      "<div style='display:flex;align-items:center;gap:6px;flex-wrap:wrap'>"+
+        "<span style='font-size:16px;font-weight:700'>"+v.name+"</span>"+
+        "<span style='font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:"+col+"25;color:"+col+"'>"+grd.name+"</span>"+
+        (grp?"<span class='grpb' style='background:"+grp.color+"'>"+grp.name+"</span>":"")+
+        (isAdmitted(v.id)?"<span class='aon'>입원중</span>":"")+
+      "</div>"+
+      "<div style='font-size:12px;color:var(--mt);margin-top:3px'>"+(v.pos||"")+(v.dept?" · "+v.dept:"")+"</div>"+
+    "</div>"+
+    "</div>";
+
+  // 일정 전체 (과거 + 미래)
+  var schs=C.schs.filter(function(s){return String(s.vipId)===String(vid);})
+    .sort(function(a,b){return dstr(b.date).localeCompare(dstr(a.date));});
+
+  if(!schs.length){
+    timeEl.innerHTML=empH("등록된 일정이 없습니다");
+    return;
+  }
+
+  var today=ds(new Date());
+  var future=schs.filter(function(s){return dstr(s.date)>=today;}).reverse();
+  var past=schs.filter(function(s){return dstr(s.date)<today;});
+
+  var html="";
+
+  // 예정 일정
+  if(future.length){
+    html+="<div style='font-size:11px;font-weight:700;color:var(--ac2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;margin-top:4px'>📅 예정 ("+future.length+"건)</div>";
+    html+=future.map(function(s){return vipSchCard(s,v,col,true);}).join("");
+  }
+
+  // 과거 이력
+  if(past.length){
+    html+="<div style='font-size:11px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 8px'>🕐 방문 이력 ("+past.length+"건)</div>";
+    html+=past.map(function(s){return vipSchCard(s,v,col,false);}).join("");
+  }
+
+  timeEl.innerHTML=html;
+}
+
+function vipSchCard(s,v,col,isFuture){
+  var dept=getDptLabel(s.dept)||s.dept||"-";
+  var border=isFuture?"2px solid "+col:"1px solid var(--bd)";
+  var bg=isFuture?"background:"+col+"08":"background:var(--cd)";
+  var editBtn=C.level==="admin"?
+    "<div style='display:flex;gap:6px;margin-top:8px'>"+
+    "<button onclick='openSchMod(\""+s.id+"\")' style='padding:5px 12px;background:var(--acl);border:1px solid var(--ac);border-radius:5px;color:var(--ac2);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer'>수정</button>"+
+    "<button onclick='delSchFromTimeline(\""+s.id+"\")' style='padding:5px 12px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:5px;color:#f87171;font-family:inherit;font-size:11px;cursor:pointer'>삭제</button>"+
+    "</div>":"";
+  return "<div style='"+bg+";border:"+border+";border-radius:var(--rs);padding:12px 14px;margin-bottom:8px"+
+    (isFuture?";border-left:4px solid "+col:"")+"'>"+
+    "<div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>"+
+      "<span style='font-size:13px;font-weight:700;color:"+(isFuture?col:"var(--tx)")+"'>"+fmtFull(dstr(s.date))+"</span>"+
+      (s.endDate?"<span style='font-size:11px;color:var(--mt)'>~ "+fmt(dstr(s.endDate))+"</span>":"")+
+      "<span style='font-size:11px;padding:2px 8px;border-radius:4px;background:var(--acl);color:var(--ac2);margin-left:auto'>"+TM[s.type]+"</span>"+
+    "</div>"+
+    "<div style='display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mt)'>"+
+      (dept!=="-"?"<span>🏥 "+dept+"</span>":"")+
+      (s.doc?"<span>👨‍⚕️ "+s.doc+"</span>":"")+
+      (s.mgr?"<span>👤 담당: "+s.mgr+"</span>":"")+
+    "</div>"+
+    (s.note?"<div style='font-size:12px;color:var(--ac2);margin-top:5px;padding:6px 8px;background:var(--acl);border-radius:4px'>"+s.note+"</div>":"")+
+    editBtn+
+    "</div>";
+}
+
+function delSchFromTimeline(schId){
+  if(!confirm("이 일정을 삭제하시겠습니까?"))return;
+  setLd(true,"삭제 중...");
+  callApi("delSch",{id:schId},function(err,r){
+    setLd(false);
+    if(err||r.error){alert("삭제 실패");return;}
+    doRefresh();setTimeout(function(){loadVipSch();},300);
+  });
 }
 
 window.addEventListener("load",function(){
