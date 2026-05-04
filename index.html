@@ -976,7 +976,7 @@ function bulkDelNtc(){
 }
 
 // ═══ 렌더 ═══
-function renderAll(){renderHome();renderCal();renderNtcs();renderVipList();renderGrpList();renderGrdList();renderDptList();renderMgrList();}
+function renderAll(){renderHome();renderCal();renderNtcs();renderVipList();renderGrpList();renderGrdList();renderDptList();renderMgrList();if(schTab==="vip")buildVipPick();}
 function dstr(s){return s?String(s).substring(0,10):"";}
 
 // ── 홈 ──
@@ -1817,12 +1817,17 @@ function setSchTab(tab){
   document.getElementById("schTabVip").className="mob-tb"+(tab==="vip"?" on":"");
   document.getElementById("schViewCal").style.display=tab==="cal"?"block":"none";
   document.getElementById("schViewVip").style.display=tab==="vip"?"block":"none";
-  if(tab==="vip") buildVipPick();
+  if(tab==="vip"){
+    // display:block 된 후에 빌드
+    setTimeout(function(){buildVipPick();},10);
+  }
   if(tab==="cal"){renderCal();setTimeout(function(){renderGT(calDt.getFullYear(),calDt.getMonth());},100);}
 }
 
 function buildVipPick(){
   var sel=document.getElementById("vipPickSel");
+  if(!sel)return;
+  // schViewVip가 숨겨져 있어도 동작하도록 임시 visible 처리
   var cur=sel.value;
   var go={};C.grades.slice().sort(function(a,b){return(parseInt(a.sortOrder)||0)-(parseInt(b.sortOrder)||0);}).forEach(function(g,i){go[g.id]=i;});
   var list=C.vips.slice().sort(function(a,b){var ga=go[a.gradeId]||99,gb=go[b.gradeId]||99;return ga!==gb?ga-gb:String(a.name).localeCompare(String(b.name));});
