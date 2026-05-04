@@ -342,7 +342,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
             </div>
           </div>
         </div>
-        <div class="sch-right" id="schRight">
+        <div class="sch-right show" id="schRight">
           <div class="gt-outer"><div class="gt-scroll"><table class="gt" id="gtTable"><thead id="gtHead"></thead><tbody id="gtBody"></tbody></table></div></div>
         </div>
       </div>
@@ -846,6 +846,11 @@ function goPage(pg,btn){
   document.querySelectorAll(".ni").forEach(function(b){b.classList.remove("on");});
   document.getElementById("p"+pg).classList.add("on");if(btn)btn.classList.add("on");
   curPg=pg;updFab();
+  if(pg==="Cal"){
+    renderCal();
+    // 탭 전환 후 그리드 폭 재계산 (레이아웃 완성 후)
+    setTimeout(function(){renderGT(calDt.getFullYear(),calDt.getMonth());},100);
+  }
   if(pg==="Admin"&&C.level==="admin"){
     if(aSub==="vip")renderVipList();
     else if(aSub==="grp")renderGrpList();
