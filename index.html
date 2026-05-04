@@ -323,70 +323,59 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 
     <!-- 스케줄 -->
     <div class="pg" id="pCal"><div class="pi">
-      <!-- 스케줄 뷰 전환 -->
+      <!-- 뷰 전환 탭 -->
       <div style="display:flex;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);padding:3px;gap:3px;margin-bottom:12px">
         <button class="mob-tb on" id="schTabCal" onclick="setSchTab('cal')" style="flex:1">📅 달력</button>
         <button class="mob-tb" id="schTabVip" onclick="setSchTab('vip')" style="flex:1">👤 개인 조회/등록</button>
       </div>
-      <!-- 달력 뷰 -->
+
+      <!-- ── 달력 뷰 ── -->
       <div id="schViewCal">
-      <div class="sch-nav">
-        <button class="cbtn" onclick="calMove(-1)">&#8249;</button>
-        <div class="cmon" id="calMon"></div>
-        <button class="cbtn" onclick="calMove(1)">&#8250;</button>
-        <button class="cal-tog-btn" id="calTogBtn" onclick="toggleCalView()" title="달력 접기/펼치기" style="margin-left:8px">달력 ◀</button>
-      </div>
-      <div class="mob-tog">
-        <button class="mob-tb on" id="mtb0" onclick="setMV(0)">달력</button>
-        <button class="mob-tb" id="mtb1" onclick="setMV(1)">VIP 현황</button>
-      </div>
-      <div class="sch-dual">
-        <div class="sch-left show" id="schLeft">
-          <div class="ccgrd">
-            <div class="ccwds"><div class="ccwd">일</div><div class="ccwd">월</div><div class="ccwd">화</div><div class="ccwd">수</div><div class="ccwd">목</div><div class="ccwd">금</div><div class="ccwd">토</div></div>
-            <div class="ccdays" id="ccDays"></div>
-          </div>
-          <div class="caldet" id="calDet">
-            <div class="sc">
-              <div class="sc-hd">
-                <div class="sc-hdl"><span class="sc-ic">&#128197;</span><span class="sc-tt" id="calDetTtl"></span></div>
-                <button id="calDetAdd" style="display:none;padding:5px 10px;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">+ 추가</button>
+        <div class="sch-nav">
+          <button class="cbtn" onclick="calMove(-1)">&#8249;</button>
+          <div class="cmon" id="calMon"></div>
+          <button class="cbtn" onclick="calMove(1)">&#8250;</button>
+          <button class="cal-tog-btn" id="calTogBtn" onclick="toggleCalView()" style="margin-left:8px">달력 ◀</button>
+        </div>
+        <div class="mob-tog">
+          <button class="mob-tb on" id="mtb0" onclick="setMV(0)">달력</button>
+          <button class="mob-tb" id="mtb1" onclick="setMV(1)">VIP 현황</button>
+        </div>
+        <div class="sch-dual">
+          <div class="sch-left show" id="schLeft">
+            <div class="ccgrd">
+              <div class="ccwds"><div class="ccwd">일</div><div class="ccwd">월</div><div class="ccwd">화</div><div class="ccwd">수</div><div class="ccwd">목</div><div class="ccwd">금</div><div class="ccwd">토</div></div>
+              <div class="ccdays" id="ccDays"></div>
+            </div>
+            <div class="caldet" id="calDet">
+              <div class="sc">
+                <div class="sc-hd">
+                  <div class="sc-hdl"><span class="sc-ic">&#128197;</span><span class="sc-tt" id="calDetTtl"></span></div>
+                  <button id="calDetAdd" style="display:none;padding:5px 10px;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">+ 추가</button>
+                </div>
+                <div id="calDetSch"></div>
               </div>
-              <div id="calDetSch"></div>
             </div>
           </div>
-        </div>
-        <div class="sch-right show" id="schRight">
-          <div class="gt-outer"><div class="gt-scroll"><table class="gt" id="gtTable"><thead id="gtHead"></thead><tbody id="gtBody"></tbody></table></div></div>
-        </div>
-      <!-- 날짜 클릭시 일정 목록 -->
-      <div id="calDetWrap" style="margin-top:12px;display:none">
-        <div class="sc">
-          <div class="sc-hd">
-            <div class="sc-hdl"><span class="sc-ic">&#128197;</span><span class="sc-tt" id="calDetTtl"></span></div>
-            <button id="calDetAdd" style="display:none;padding:5px 10px;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">+ 추가</button>
+          <div class="sch-right show" id="schRight">
+            <div class="gt-outer"><div class="gt-scroll"><table class="gt" id="gtTable"><thead id="gtHead"></thead><tbody id="gtBody"></tbody></table></div></div>
           </div>
-          <div id="calDetSch"></div>
         </div>
       </div>
-      </div><!-- /schViewCal -->
 
-      <!-- 개인 조회/등록 뷰 -->
+      <!-- ── 개인 조회/등록 뷰 ── -->
       <div id="schViewVip" style="display:none">
-        <!-- VIP 선택 -->
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-          <select id="vipPickSel" onchange="loadVipSch()" style="flex:1;padding:11px 13px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:14px;outline:none;-webkit-appearance:none;min-height:44px">
+          <select id="vipPickSel" onchange="loadVipSch()" style="flex:1;padding:11px 13px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:14px;outline:none;min-height:44px">
             <option value="">-- 대상자 선택 --</option>
           </select>
-          <button class="badd" onclick="openSchModForVip()" id="vipSchAddBtn" style="display:none">+ 일정 추가</button>
+          <button class="badd" id="vipSchAddBtn" onclick="openSchModForVip()" style="display:none">+ 일정 추가</button>
         </div>
-        <!-- 선택된 VIP 정보 -->
         <div id="vipPickInfo" style="display:none;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:12px"></div>
-        <!-- 일정 타임라인 -->
         <div id="vipSchTimeline"></div>
       </div>
 
-    </div></div></div>
+    </div></div>
 
     <!-- 공지 -->
     <div class="pg" id="pNtc"><div class="pi">
@@ -1831,8 +1820,17 @@ function buildVipPick(){
   var cur=sel.value;
   var go={};C.grades.slice().sort(function(a,b){return(parseInt(a.sortOrder)||0)-(parseInt(b.sortOrder)||0);}).forEach(function(g,i){go[g.id]=i;});
   var list=C.vips.slice().sort(function(a,b){var ga=go[a.gradeId]||99,gb=go[b.gradeId]||99;return ga!==gb?ga-gb:String(a.name).localeCompare(String(b.name));});
-  sel.innerHTML="<option value=''>-- 대상자 선택 --</option>"+
-    list.map(function(v){return"<option value='"+v.id+"'>["+getGrd(v.gradeId).name+"] "+v.name+"</option>";}).join("");
+  // innerHTML 대신 options 방식으로 (hidden 요소에서도 안전)
+  while(sel.options.length>0) sel.remove(0);
+  var opt0=document.createElement("option");
+  opt0.value="";opt0.text="-- 대상자 선택 --";
+  sel.add(opt0);
+  list.forEach(function(v){
+    var opt=document.createElement("option");
+    opt.value=v.id;
+    opt.text="["+getGrd(v.gradeId).name+"] "+v.name;
+    sel.add(opt);
+  });
   if(cur) sel.value=cur;
   if(sel.value) loadVipSch();
 }
@@ -1961,11 +1959,13 @@ window.addEventListener("load",function(){
     C.depts=[{id:"d1",abbr:"심내",fullName:"심장내과"},{id:"d2",abbr:"정형외",fullName:"정형외과"}];
     C.managers=[{id:"m1",name:"김영선"}];
     C.vips=[{id:"v1",name:"홍길동",gradeId:"g1",groupId:"gr1",pos:"이사장",dept:"심장내과",regNo:"100000001"},{id:"v2",name:"김영희",gradeId:"g2",groupId:"",pos:"교수",dept:"정형외과",regNo:"100000002"}];
-    C.schs=[{id:"s1",vipId:"v1",date:ds(new Date()),type:"outpatient",dept:"심내",doc:"박교수",note:"VIP실 준비",mgr:"김영선"}];
-    C.ntcs=[];C.groups=C.groups;
+    C.schs=[{id:"s1",vipId:"v1",date:"2026-05-04",type:"outpatient",dept:"심내",doc:"박교수",note:"VIP실 준비",mgr:"김영선"},{id:"s2",vipId:"v1",date:"2026-04-15",type:"exam",dept:"정형외",doc:"이교수",note:"정기검사",mgr:"김영선"},{id:"s3",vipId:"v2",date:"2026-05-10",type:"surgery",dept:"정형외",doc:"이교수",note:"수술 준비",mgr:"김영선"}];
+    C.ntcs=[];
     document.getElementById("ls").style.display="none";
     document.getElementById("app").style.display="flex";
     buildThemeGrid();updateLvUI();renderAll();
+    // 개인탭 드롭다운도 미리 채워두기
+    setTimeout(function(){buildVipPick();},100);
     setSS(true,"[로컬 미리보기 모드] 실제 데이터 아님");
     return;
   }
