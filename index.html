@@ -1688,7 +1688,7 @@ function renderGrdList(){
     var g=list[i];
     var members=C.vips.filter(function(v){return String(v.gradeId)===String(g.id);});
     var expanded=!!openGrdSecs[g.id];
-    var row="<div style='background:#fff;border:2px solid "+g.color+";border-radius:10px;margin-bottom:10px;overflow:hidden'>";
+    var row="<div style='background:var(--sf);border:1px solid var(--bd);border-left:4px solid "+g.color+";border-radius:var(--rs);margin-bottom:10px;overflow:hidden'>";
     // 헤더
     row+="<div style='display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:var(--cd2)' data-grdtog='"+g.id+"'>";
     row+="<div style='width:20px;height:20px;border-radius:50%;background:"+g.color+";flex-shrink:0'></div>";
