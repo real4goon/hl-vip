@@ -78,10 +78,11 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 .syd{width:6px;height:6px;border-radius:50%;background:#34d399;flex-shrink:0}
 .syd.e{background:#f87171}
 .pgs{flex:1;overflow:hidden;position:relative}
-.pg{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;display:none;animation:fi .22s ease}
+.pg{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;display:none;animation:fi .22s ease}
 .pg.on{display:block}
 @keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 .pi{max-width:1100px;margin:0 auto}
+#pCal .pi{max-width:none;padding:0 8px}
 /* ── 하단 내비 ── */
 .bn{background:var(--sf);border-top:1px solid var(--bd);display:flex;justify-content:center;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)}
 .ni{min-width:62px;max-width:74px;padding:8px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;color:var(--dm);font-family:inherit;transition:color .2s;min-height:52px}
@@ -142,8 +143,14 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 .cal-tog-btn.active{background:var(--ac);color:#fff;border-color:var(--ac)}
 @media(min-width:700px){
   .mob-tog{display:none}
-  .sch-left{display:block!important;width:340px;flex-shrink:0}
-  .sch-right{display:block!important}
+  .sch-left{display:block!important;flex:0 0 44%;flex-shrink:0}
+  .sch-right{display:block!important;flex:1}
+}
+@media(min-width:1200px){
+  .sch-left{flex:0 0 42%}
+}
+@media(min-width:1600px){
+  .sch-left{flex:0 0 38%}
 }
 /* 클래식 달력 */
 .ccgrd{background:var(--cd);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
@@ -151,7 +158,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 .ccwd{text-align:center;padding:8px 0;font-size:11px;font-weight:700;color:var(--mt)}
 .ccwd:first-child{color:#f87171}.ccwd:last-child{color:var(--ac2)}
 .ccdays{display:grid;grid-template-columns:repeat(7,1fr)}
-.ccd{min-height:86px;padding:4px 3px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);cursor:pointer;overflow:hidden;transition:background .1s}
+.ccd{min-height:105px;padding:4px 3px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);cursor:pointer;overflow:hidden;transition:background .1s}
 .ccd:active{background:var(--cd2)}
 .ccd:nth-child(7n){border-right:none}
 .ccd.oth{opacity:.2}
@@ -160,7 +167,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 .cdn2{font-size:12px;font-weight:700;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin-bottom:3px}
 .ccd:nth-child(7n+1) .cdn2{color:#f87171}
 .ccd:nth-child(7n) .cdn2{color:var(--ac2)}
-.chip{font-size:9px;padding:2px 4px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;display:block;cursor:pointer;border-left:2px solid transparent}
+.chip{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;display:block;cursor:pointer;border-left:2px solid transparent}
 .cmore{font-size:9px;color:var(--mt);font-weight:600;padding:1px 3px}
 /* VIP×날짜 그리드 */
 .gt-outer{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--bd);border-radius:var(--r);background:var(--cd)}
@@ -1004,7 +1011,7 @@ function renderCC(y,m){
     chips=ev.slice(0,5).map(function(s){
       var v=getVip(s.vipId);if(!v)return"";
       var col=getGrd(v.gradeId).color;
-      return"<span class='chip' data-sid='"+s.id+"' style='background:"+col+"18;color:"+col+";border-left-color:"+col+"'>"+v.name+" "+TM[s.type]+"</span>";
+      return"<span class='chip' data-sid='"+s.id+"' style='background:"+col+"18;color:"+col+";border-left-color:"+col+"'>"+v.name+"</span>";
     }).join("");
     if(ev.length>5)chips+="<span class='cmore'>+"+( ev.length-5)+"건 더</span>";
     html+="<div class='ccd"+(dstr2===ts?" tod":"")+(calSel===dstr2?" sel":"")+"' data-d='"+dstr2+"'><div class='cdn2'>"+d+"</div>"+chips+"</div>";
