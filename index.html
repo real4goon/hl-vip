@@ -1182,7 +1182,7 @@ function vipCard(v,showCb){
   var last=C.schs.filter(function(s){return String(s.vipId)===String(v.id)&&s.type!=="admission";}).sort(function(a,b){return dstr(b.date).localeCompare(dstr(a.date));})[0];
   var grp=getGrpById(v.groupId);var admitted=isAdmitted(v.id);
   var cbHtml=showCb?"<input type='checkbox' class='bulk-cb-vip' value='"+v.id+"' onclick='event.stopPropagation()' style='width:17px;height:17px;accent-color:var(--ac);flex-shrink:0'>":"";
-  return "<div class='vc' onclick='"+(showCb?"":"openVipDet('"+v.id+"')")+"'>"
+  return "<div class='vc'"+(showCb?"":" data-vipdet='"+v.id+"'")+">"
     +(showCb?"<div class='cb-wrap'>"+cbHtml+"</div>":"")
     // 좌: 아바타
     +"<div class='av' style='width:38px;height:38px;font-size:13px;flex-shrink:0;background:"+col+"20;color:"+col+";border-color:"+col+"50'>"+String(v.name).slice(-2)+"</div>"
@@ -1191,7 +1191,7 @@ function vipCard(v,showCb){
       // 줄1: 이름 + 등급 + 입원
       +"<div style='display:flex;align-items:center;gap:5px;flex-wrap:nowrap;overflow:hidden'>"
         +"<span style='font-size:14px;font-weight:700;white-space:nowrap'>"+v.name+"</span>"
-        +(v.regNo?"<span style='font-size:10px;color:var(--dm);white-space:nowrap'>"+v.regNo+"</span>":"")
+        +(v.regNo?"<span style='font-size:10px;color:var(--dm);white-space:nowrap'>"+String(v.regNo).padStart(9,"0")+"</span>":"")
         +"<span class='gbadge' style='background:"+col+"25;color:"+col+";flex-shrink:0'>"+grd.name+"</span>"
         +(admitted?"<span class='aon' style='flex-shrink:0'>입원중</span>":"")
       +"</div>"
@@ -1372,7 +1372,7 @@ function openVipDet(vid){
       "<div style='display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;flex-wrap:wrap'>"+
         "<span class='gbadge' style='background:"+col+"25;color:"+col+"'>"+grd.name+"</span>"+
         (grp?"<span class='grpb' style='background:"+grp.color+"'>"+grp.name+"</span>":"")+
-        (v.regNo?"<span style='font-size:11px;color:var(--dm)'>No."+v.regNo+"</span>":"")+
+        (v.regNo?"<span style='font-size:11px;color:var(--dm)'>No."+String(v.regNo).padStart(9,"0")+"</span>":"")+
       "</div>"+
     "</div>"+
     (admitted&&adSch?"<div style='background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:var(--rs);padding:10px 12px;margin-bottom:12px;font-size:13px'>"+
