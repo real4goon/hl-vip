@@ -1636,7 +1636,7 @@ function renderGrpList(){
     var members=C.vips.filter(function(v){return String(v.groupId||"")===String(g.id);});
     var expanded=!!openGrpSecs[g.id];
     var gid=g.id;
-    parts.push("<div style='background:var(--sf);border:2px solid var(--ac);border-radius:var(--rs);margin-bottom:10px;overflow:hidden'>");
+    parts.push("<div style='background:#fff;border:2px solid "+g.color+";border-radius:var(--rs);margin-bottom:10px;overflow:hidden'>");
     // 헤더
     parts.push("<div style='display:flex;align-items:center;gap:8px;padding:11px 13px;background:var(--cd2);cursor:pointer' data-grptog='"+gid+"'>");
     parts.push("<div style='width:18px;height:18px;border-radius:50%;background:"+g.color+";flex-shrink:0'></div>");
@@ -1657,7 +1657,7 @@ function renderGrpList(){
         members.forEach(function(v){
           var col=getGrd(v.gradeId).color;
           var grd=getGrd(v.gradeId);
-          parts.push("<div style='display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:6px'>");
+          parts.push("<div style='display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:6px;cursor:pointer' data-vipdet='"+v.id+"'>");
           parts.push("<div style='width:34px;height:34px;border-radius:50%;background:"+col+"20;color:"+col+";border:2px solid "+col+"50;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0'>"+String(v.name).slice(-2)+"</div>");
           parts.push("<div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:700'>"+v.name+"</div>");
           parts.push("<div style='font-size:11px;color:var(--mt)'>"+grd.name+(v.pos?" · "+v.pos:"")+"</div></div>");
