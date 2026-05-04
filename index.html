@@ -972,7 +972,7 @@ function bulkDelNtc(){
 }
 
 // ═══ 렌더 ═══
-function renderAll(){renderHome();renderCal();renderNtcs();renderVipList();renderGrpList();renderGrdList();renderDptList();renderMgrList();if(schTab==="vip")buildVipPick();}
+function renderAll(){renderHome();renderCal();renderNtcs();renderVipList();renderGrpList();renderGrdList();renderDptList();renderMgrList();if(schTab==="vip")renderUpcomingList();}
 function dstr(s){return s?String(s).substring(0,10):"";}
 
 // ── 홈 ──
@@ -1813,7 +1813,7 @@ function setSchTab(tab){
   document.getElementById("schTabVip").className="mob-tb"+(tab==="vip"?" on":"");
   document.getElementById("schViewCal").style.display=tab==="cal"?"block":"none";
   document.getElementById("schViewVip").style.display=tab==="vip"?"block":"none";
-  // vip 탭 - 검색창 포커스
+  if(tab==="vip"){renderUpcomingList();}
   if(tab==="cal"){renderCal();setTimeout(function(){renderGT(calDt.getFullYear(),calDt.getMonth());},100);}
 }
 
@@ -1936,42 +1936,98 @@ function delSchFromTimeline(schId){
 
 var vipPickId = "";
 
+function renderVipDropItem(v){
+  var col=getGrd(v.gradeId).color;
+  var grd=getGrd(v.gradeId);
+  var today=ds(new Date());
+  var nextSch=C.schs.filter(function(s){return String(s.vipId)===String(v.id)&&dstr(s.date)>=today&&s.type!=="admission";})
+    .sort(function(a,b){return dstr(a.date).localeCompare(dstr(b.date));})[0];
+  return "<div data-vid='"+v.id+"' style='display:flex;align-items:center;gap:10px;padding:10px 13px;cursor:pointer;border-bottom:1px solid var(--bd);transition:background .1s' onmouseover=\"this.style.background='var(--cd2)'\" onmouseout=\"this.style.background=''\">"+
+    "<div style='width:34px;height:34px;border-radius:50%;background:"+col+"20;color:"+col+";border:2px solid "+col+"50;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0'>"+String(v.name).slice(-2)+"</div>"+
+    "<div style='flex:1;min-width:0'>"+
+      "<div style='display:flex;align-items:center;gap:6px'>"+
+        "<span style='font-size:13px;font-weight:700'>"+v.name+"</span>"+
+        "<span style='font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;background:"+col+"25;color:"+col+"'>"+grd.name+"</span>"+
+      "</div>"+
+      "<div style='font-size:11px;color:var(--mt)'>"+
+        (v.pos?v.pos+" · ":"")+
+        (nextSch?"<span style='color:var(--ac2)'>다음: "+fmt(dstr(nextSch.date))+" "+TM[nextSch.type]+"</span>":"기록없음")+
+      "</div>"+
+    "</div>"+
+    "</div>";
+}
+
 function filterVipPick(){
-  var q = document.getElementById("vipPickSearch").value.trim().toLowerCase();
-  var drop = document.getElementById("vipPickDrop");
+  var q=document.getElementById("vipPickSearch").value.trim().toLowerCase();
+  var drop=document.getElementById("vipPickDrop");
+  var go={};gradesSorted().forEach(function(g,i){go[g.id]=i;});
+  var list=C.vips.slice().sort(function(a,b){var ga=go[a.gradeId]||99,gb=go[b.gradeId]||99;return ga!==gb?ga-gb:String(a.name).localeCompare(String(b.name));});
+  if(q) list=list.filter(function(v){return v.name.toLowerCase().indexOf(q)>=0||(v.pos||"").toLowerCase().indexOf(q)>=0||(v.dept||"").toLowerCase().indexOf(q)>=0;});
+  if(!list.length){drop.innerHTML="<div style='padding:12px 14px;color:var(--mt);font-size:13px'>검색 결과 없음</div>";drop.style.display="block";return;}
+  drop.innerHTML=list.map(renderVipDropItem).join("");
+  drop.style.display="block";
+}
 
-  var go = {};
-  gradesSorted().forEach(function(g,i){go[g.id]=i;});
-  var list = C.vips.slice().sort(function(a,b){
-    var ga=go[a.gradeId]||99, gb=go[b.gradeId]||99;
-    return ga!==gb ? ga-gb : String(a.name).localeCompare(String(b.name));
-  }).filter(function(v){
-    return v.name.toLowerCase().indexOf(q)>=0 ||
-           (v.pos||"").toLowerCase().indexOf(q)>=0 ||
-           (v.dept||"").toLowerCase().indexOf(q)>=0;
+function onVipSearch(){
+  var q=document.getElementById("vipPickSearch").value.trim();
+  var ul=document.getElementById("vipUpcomingList");
+  if(ul) ul.style.display=q?"none":"block";
+  filterVipPick();
+}
+
+function onVipSearchFocus(){
+  var q=document.getElementById("vipPickSearch").value.trim();
+  if(!q){
+    // 검색어 없으면 드롭다운 숨기고 목록 보여주기
+    document.getElementById("vipPickDrop").style.display="none";
+  }else{
+    filterVipPick();
+  }
+}
+
+function renderUpcomingList(){
+  var el=document.getElementById("vipUpcomingList");
+  if(!el)return;
+  var today=ds(new Date());
+  var upcoming=[];
+  C.vips.forEach(function(v){
+    var next=C.schs.filter(function(s){
+      return String(s.vipId)===String(v.id)&&dstr(s.date)>=today&&s.type!=="admission";
+    }).sort(function(a,b){return dstr(a.date).localeCompare(dstr(b.date));})[0];
+    if(next) upcoming.push({v:v,next:next});
   });
+  upcoming.sort(function(a,b){return dstr(a.next.date).localeCompare(dstr(b.next.date));});
 
-  if(!list.length){
-    drop.innerHTML="<div style='padding:12px 14px;color:var(--mt);font-size:13px'>검색 결과 없음</div>";
-    drop.style.display="block";return;
+  if(!upcoming.length){
+    el.innerHTML="<div style='text-align:center;padding:20px;color:var(--mt);font-size:13px'>예정된 일정이 없습니다</div>";
+    return;
   }
 
-  drop.innerHTML = list.map(function(v){
-    var col = getGrd(v.gradeId).color;
-    var grd = getGrd(v.gradeId);
-    return "<div data-vid='"+v.id+"' style='display:flex;align-items:center;gap:10px;padding:10px 13px;cursor:pointer;border-bottom:1px solid var(--bd)'>"
-      +"<div style='width:32px;height:32px;border-radius:50%;background:"+col+"20;color:"+col+";border:2px solid "+col+"50;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0'>"+String(v.name).slice(-2)+"</div>"
-      +"<div>"
-        +"<div style='font-size:13px;font-weight:700'>"+v.name+"</div>"
-        +"<div style='font-size:11px;color:var(--mt)'>"
-          +"<span style='color:"+col+";font-weight:600'>"+grd.name+"</span>"
-          +(v.pos?" · "+v.pos:"")
-          +(v.dept?" · "+v.dept:"")
+  var rows="";
+  for(var i=0;i<upcoming.length;i++){
+    var v=upcoming[i].v, s=upcoming[i].next;
+    var col=getGrd(v.gradeId).color;
+    var grd=getGrd(v.gradeId);
+    var dept=getDptLabel(s.dept)||s.dept||"";
+    rows+="<div class='upcoming-row' data-vid='"+v.id+"' style='display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--bd);cursor:pointer'>"
+      +"<div style='width:36px;height:36px;border-radius:50%;background:"+col+"20;color:"+col+";border:2px solid "+col+"50;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0'>"+String(v.name).slice(-2)+"</div>"
+      +"<div style='flex:1;min-width:0'>"
+        +"<div style='display:flex;align-items:center;gap:5px'>"
+          +"<span style='font-size:13px;font-weight:700'>"+v.name+"</span>"
+          +"<span style='font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;background:"+col+"25;color:"+col+"'>"+grd.name+"</span>"
+          +(isAdmitted(v.id)?"<span class='aon'>입원중</span>":"")
         +"</div>"
+        +"<div style='font-size:11px;color:var(--mt);margin-top:2px'>"+(v.pos||"")+(dept?" · "+dept:"")+"</div>"
+      +"</div>"
+      +"<div style='text-align:right;flex-shrink:0'>"
+        +"<div style='font-size:12px;font-weight:700;color:var(--ac2)'>"+fmt(dstr(s.date))+"</div>"
+        +"<div style='font-size:11px;color:var(--mt)'>"+TM[s.type]+"</div>"
       +"</div>"
     +"</div>";
-  }).join("");
-  drop.style.display="block";
+  }
+
+  el.innerHTML="<div style='font-size:11px;font-weight:700;color:var(--mt);letter-spacing:.5px;margin-bottom:8px'>📅 예정 일정 있는 대상자 ("+upcoming.length+"명)</div>"
+    +"<div style='background:var(--cd);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:12px'>"+rows+"</div>";
 }
 
 function selectVipFromDrop(vid){
@@ -1995,12 +2051,17 @@ function clearVipPick(){
   document.getElementById("vipSchTimeline").innerHTML = "";
   var addBtn = document.getElementById("vipSchAddBtn");
   if(addBtn) addBtn.style.display = "none";
+  var ul=document.getElementById("vipUpcomingList");if(ul)ul.style.display="block";
+  renderUpcomingList();
 }
 
 // 드롭다운 클릭 이벤트 (이벤트 위임)
 document.addEventListener("click", function(e){
   var item = e.target.closest("#vipPickDrop [data-vid]");
   if(item){ selectVipFromDrop(item.getAttribute("data-vid")); return; }
+  // 예정 목록 행 클릭
+  var uprow=e.target.closest(".upcoming-row[data-vid]");
+  if(uprow){selectVipFromDrop(uprow.getAttribute("data-vid"));return;}
   // 드롭다운 외부 클릭 시 닫기
   var drop = document.getElementById("vipPickDrop");
   if(drop && !drop.contains(e.target) && e.target.id !== "vipPickSearch"){
@@ -2064,7 +2125,6 @@ window.addEventListener("load",function(){
     document.getElementById("app").style.display="flex";
     buildThemeGrid();updateLvUI();renderAll();
     // 개인탭 드롭다운도 미리 채워두기
-    setTimeout(function(){buildVipPick();},100);
     setSS(true,"[로컬 미리보기 모드] 실제 데이터 아님");
     return;
   }
