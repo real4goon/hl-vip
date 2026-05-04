@@ -359,6 +359,16 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
         <div class="sch-right show" id="schRight">
           <div class="gt-outer"><div class="gt-scroll"><table class="gt" id="gtTable"><thead id="gtHead"></thead><tbody id="gtBody"></tbody></table></div></div>
         </div>
+      <!-- 날짜 클릭시 일정 목록 -->
+      <div id="calDetWrap" style="margin-top:12px;display:none">
+        <div class="sc">
+          <div class="sc-hd">
+            <div class="sc-hdl"><span class="sc-ic">&#128197;</span><span class="sc-tt" id="calDetTtl"></span></div>
+            <button id="calDetAdd" style="display:none;padding:5px 10px;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;border-radius:6px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">+ 추가</button>
+          </div>
+          <div id="calDetSch"></div>
+        </div>
+      </div>
       </div><!-- /schViewCal -->
 
       <!-- 개인 조회/등록 뷰 -->
@@ -376,7 +386,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
         <div id="vipSchTimeline"></div>
       </div>
 
-    </div></div>
+    </div></div></div>
 
     <!-- 공지 -->
     <div class="pg" id="pNtc"><div class="pi">
