@@ -365,11 +365,18 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 
       <!-- ── 개인 조회/등록 뷰 ── -->
       <div id="schViewVip" style="display:none">
-        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-          <select id="vipPickSel" onchange="loadVipSch()" style="flex:1;padding:11px 13px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:14px;outline:none;min-height:44px">
-            <option value="">-- 대상자 선택 --</option>
-          </select>
+        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+          <div style="flex:1;position:relative">
+            <input type="text" id="vipPickSearch" placeholder="이름 검색..." oninput="filterVipPick()" onfocus="filterVipPick()" autocomplete="off"
+              style="width:100%;padding:11px 13px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:14px;outline:none;min-height:44px">
+            <div id="vipPickDrop" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--sf);border:1px solid var(--ac);border-radius:var(--rs);z-index:100;max-height:240px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.3)"></div>
+          </div>
           <button class="badd" id="vipSchAddBtn" onclick="openSchModForVip()" style="display:none">+ 일정 추가</button>
+        </div>
+        <div id="vipPickSelected" style="display:none;margin-bottom:10px">
+          <span style="font-size:11px;color:var(--mt)">선택된 대상자: </span>
+          <span id="vipPickName" style="font-size:13px;font-weight:700;color:var(--ac2)"></span>
+          <button onclick="clearVipPick()" style="margin-left:8px;background:none;border:none;color:var(--mt);cursor:pointer;font-size:12px">✕ 변경</button>
         </div>
         <div id="vipPickInfo" style="display:none;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);padding:12px 14px;margin-bottom:12px"></div>
         <div id="vipSchTimeline"></div>
@@ -1806,40 +1813,17 @@ function setSchTab(tab){
   document.getElementById("schTabVip").className="mob-tb"+(tab==="vip"?" on":"");
   document.getElementById("schViewCal").style.display=tab==="cal"?"block":"none";
   document.getElementById("schViewVip").style.display=tab==="vip"?"block":"none";
-  if(tab==="vip"){
-    // display:block 된 후에 빌드
-    setTimeout(function(){buildVipPick();},10);
-  }
+  // vip 탭 - 검색창 포커스
   if(tab==="cal"){renderCal();setTimeout(function(){renderGT(calDt.getFullYear(),calDt.getMonth());},100);}
 }
 
-function buildVipPick(){
-  var sel=document.getElementById("vipPickSel");
-  if(!sel)return;
-  // schViewVip가 숨겨져 있어도 동작하도록 임시 visible 처리
-  var cur=sel.value;
-  var go={};C.grades.slice().sort(function(a,b){return(parseInt(a.sortOrder)||0)-(parseInt(b.sortOrder)||0);}).forEach(function(g,i){go[g.id]=i;});
-  var list=C.vips.slice().sort(function(a,b){var ga=go[a.gradeId]||99,gb=go[b.gradeId]||99;return ga!==gb?ga-gb:String(a.name).localeCompare(String(b.name));});
-  // innerHTML 대신 options 방식으로 (hidden 요소에서도 안전)
-  while(sel.options.length>0) sel.remove(0);
-  var opt0=document.createElement("option");
-  opt0.value="";opt0.text="-- 대상자 선택 --";
-  sel.add(opt0);
-  list.forEach(function(v){
-    var opt=document.createElement("option");
-    opt.value=v.id;
-    opt.text="["+getGrd(v.gradeId).name+"] "+v.name;
-    sel.add(opt);
-  });
-  if(cur) sel.value=cur;
-  if(sel.value) loadVipSch();
-}
+function buildVipPick(){}
+
 
 function openSchModForVip(){
-  var vid=document.getElementById("vipPickSel").value;
+  var vid=vipPickId;
   if(!vid)return;
   openSchMod(null,null);
-  // VIP 미리 선택
   setTimeout(function(){
     var s=document.getElementById("sVip");
     if(s)s.value=vid;
@@ -1847,7 +1831,7 @@ function openSchModForVip(){
 }
 
 function loadVipSch(){
-  var vid=document.getElementById("vipPickSel").value;
+  var vid=vipPickId||document.getElementById("vipPickSel")&&document.getElementById("vipPickSel").value||"";
   var infoEl=document.getElementById("vipPickInfo");
   var timeEl=document.getElementById("vipSchTimeline");
   var addBtn=document.getElementById("vipSchAddBtn");
@@ -1947,6 +1931,121 @@ function delSchFromTimeline(schId){
     if(err||r.error){alert("삭제 실패");return;}
     doRefresh();setTimeout(function(){loadVipSch();},300);
   });
+}
+
+
+var vipPickId = "";
+
+function filterVipPick(){
+  var q = document.getElementById("vipPickSearch").value.trim().toLowerCase();
+  var drop = document.getElementById("vipPickDrop");
+
+  var go = {};
+  gradesSorted().forEach(function(g,i){go[g.id]=i;});
+  var list = C.vips.slice().sort(function(a,b){
+    var ga=go[a.gradeId]||99, gb=go[b.gradeId]||99;
+    return ga!==gb ? ga-gb : String(a.name).localeCompare(String(b.name));
+  }).filter(function(v){
+    return v.name.toLowerCase().indexOf(q)>=0 ||
+           (v.pos||"").toLowerCase().indexOf(q)>=0 ||
+           (v.dept||"").toLowerCase().indexOf(q)>=0;
+  });
+
+  if(!list.length){
+    drop.innerHTML="<div style='padding:12px 14px;color:var(--mt);font-size:13px'>검색 결과 없음</div>";
+    drop.style.display="block";return;
+  }
+
+  drop.innerHTML = list.map(function(v){
+    var col = getGrd(v.gradeId).color;
+    var grd = getGrd(v.gradeId);
+    return "<div data-vid='"+v.id+"' style='display:flex;align-items:center;gap:10px;padding:10px 13px;cursor:pointer;border-bottom:1px solid var(--bd)'>"
+      +"<div style='width:32px;height:32px;border-radius:50%;background:"+col+"20;color:"+col+";border:2px solid "+col+"50;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0'>"+String(v.name).slice(-2)+"</div>"
+      +"<div>"
+        +"<div style='font-size:13px;font-weight:700'>"+v.name+"</div>"
+        +"<div style='font-size:11px;color:var(--mt)'>"
+          +"<span style='color:"+col+";font-weight:600'>"+grd.name+"</span>"
+          +(v.pos?" · "+v.pos:"")
+          +(v.dept?" · "+v.dept:"")
+        +"</div>"
+      +"</div>"
+    +"</div>";
+  }).join("");
+  drop.style.display="block";
+}
+
+function selectVipFromDrop(vid){
+  var v = getVip(vid);
+  if(!v) return;
+  vipPickId = vid;
+  document.getElementById("vipPickSearch").value = "";
+  document.getElementById("vipPickDrop").style.display = "none";
+  document.getElementById("vipPickSelected").style.display = "block";
+  document.getElementById("vipPickName").textContent = "["+getGrd(v.gradeId).name+"] "+v.name;
+  var addBtn = document.getElementById("vipSchAddBtn");
+  if(addBtn && C.level==="admin") addBtn.style.display="block";
+  loadVipSchById(vid);
+}
+
+function clearVipPick(){
+  vipPickId = "";
+  document.getElementById("vipPickSearch").value = "";
+  document.getElementById("vipPickSelected").style.display = "none";
+  document.getElementById("vipPickInfo").style.display = "none";
+  document.getElementById("vipSchTimeline").innerHTML = "";
+  var addBtn = document.getElementById("vipSchAddBtn");
+  if(addBtn) addBtn.style.display = "none";
+}
+
+// 드롭다운 클릭 이벤트 (이벤트 위임)
+document.addEventListener("click", function(e){
+  var item = e.target.closest("#vipPickDrop [data-vid]");
+  if(item){ selectVipFromDrop(item.getAttribute("data-vid")); return; }
+  // 드롭다운 외부 클릭 시 닫기
+  var drop = document.getElementById("vipPickDrop");
+  if(drop && !drop.contains(e.target) && e.target.id !== "vipPickSearch"){
+    drop.style.display = "none";
+  }
+});
+
+function loadVipSchById(vid){
+  // 기존 loadVipSch를 vid 직접 받도록
+  var infoEl = document.getElementById("vipPickInfo");
+  var timeEl = document.getElementById("vipSchTimeline");
+  var v = getVip(vid);
+  if(!v){timeEl.innerHTML=empH("대상자 정보 없음");return;}
+  var col=getGrd(v.gradeId).color;
+  var grd=getGrd(v.gradeId);
+  var grp=getGrpById(v.groupId);
+  infoEl.style.display="block";
+  infoEl.innerHTML=
+    "<div style='display:flex;align-items:center;gap:12px'>"+
+    "<div style='width:44px;height:44px;border-radius:50%;background:"+col+"20;color:"+col+";border:2px solid "+col+"50;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0'>"+String(v.name).slice(-2)+"</div>"+
+    "<div style='flex:1'>"+
+      "<div style='display:flex;align-items:center;gap:6px;flex-wrap:wrap'>"+
+        "<span style='font-size:16px;font-weight:700'>"+v.name+"</span>"+
+        "<span style='font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:"+col+"25;color:"+col+"'>"+grd.name+"</span>"+
+        (grp?"<span class='grpb' style='background:"+grp.color+"'>"+grp.name+"</span>":"")+
+        (isAdmitted(v.id)?"<span class='aon'>입원중</span>":"")+
+      "</div>"+
+      "<div style='font-size:12px;color:var(--mt);margin-top:3px'>"+(v.pos||"")+(v.dept?" · "+v.dept:"")+"</div>"+
+    "</div></div>";
+  var schs = C.schs.filter(function(s){return String(s.vipId)===String(vid);})
+    .sort(function(a,b){return dstr(b.date).localeCompare(dstr(a.date));});
+  if(!schs.length){timeEl.innerHTML=empH("등록된 일정이 없습니다");return;}
+  var today=ds(new Date());
+  var future=schs.filter(function(s){return dstr(s.date)>=today;}).reverse();
+  var past=schs.filter(function(s){return dstr(s.date)<today;});
+  var html="";
+  if(future.length){
+    html+="<div style='font-size:11px;font-weight:700;color:var(--ac2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;margin-top:4px'>📅 예정 ("+future.length+"건)</div>";
+    html+=future.map(function(s){return vipSchCard(s,v,col,true);}).join("");
+  }
+  if(past.length){
+    html+="<div style='font-size:11px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 8px'>🕐 방문 이력 ("+past.length+"건)</div>";
+    html+=past.map(function(s){return vipSchCard(s,v,col,false);}).join("");
+  }
+  timeEl.innerHTML=html;
 }
 
 window.addEventListener("load",function(){
