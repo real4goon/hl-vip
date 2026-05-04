@@ -197,7 +197,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
 .srow input{flex:1;padding:11px 13px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:14px;outline:none;min-height:44px}
 .srow input:focus{border-color:var(--ac)}
 .badd{padding:11px 14px;background:linear-gradient(135deg,var(--ac),var(--ac2));border:none;border-radius:var(--rs);color:#fff;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit;white-space:nowrap;min-height:44px}
-.vc{display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:8px;cursor:pointer;min-height:52px;transition:background .12s}
+.vc{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:5px;cursor:pointer;min-height:44px;transition:background .12s}
 .vc:active{background:var(--cd2)}
 .av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;border:2px solid}
 .vi2{flex:1;min-width:0}
@@ -375,13 +375,17 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
         </div>
         <!-- VIP -->
         <div id="asVip">
-          <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
             <input type="text" id="vipSrch" placeholder="이름 검색" oninput="renderVipList()" style="flex:1;padding:10px 12px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:14px;outline:none;min-height:42px">
             <button class="badd" onclick="openVipMod(null)">+ 등록</button>
           </div>
-          <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
+          <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
             <button id="vipViewBtn" class="bs" onclick="toggleVipView()">그룹뷰</button>
             <button id="vipBulkBtn" class="bs" onclick="toggleBulkMode('vip')">복수선택</button>
+            <span style="font-size:11px;color:var(--mt);margin-left:4px">정렬:</span>
+            <button class="bs" id="srtGrd" onclick="setVipSort('grade')" style="font-size:11px;padding:5px 8px">등급순</button>
+            <button class="bs" id="srtNm" onclick="setVipSort('name')" style="font-size:11px;padding:5px 8px">이름순</button>
+            <button class="bs" id="srtRec" onclick="setVipSort('recent')" style="font-size:11px;padding:5px 8px">최근방문</button>
           </div>
           <div class="bulk-bar" id="vipBulkBar">
             <span class="bulk-cnt" id="vipBulkCnt">0개 선택</span>
@@ -627,7 +631,7 @@ function buildThemeGrid(){
 var C={vips:[],schs:[],ntcs:[],depts:[],groups:[],grades:[],managers:[],level:null,perms:{phone:false,note:false}};
 var PW=localStorage.getItem("vip_pw")||"",curPg="Home",calDt=new Date(),calSel=null;
 var editSchId=null,editVipId=null,editDptId=null,editGrpId=null,editGrdId=null,chgPwType=null;
-var vipFlt="all",aSub="vip",mobView=0,vipViewMode="list";
+var vipFlt="all",aSub="vip",mobView=0,vipViewMode="list",vipSort="grade";
 var bulkMode={vip:false,ntc:false,grp:false,dpt:false};
 var openGrpSecs={};
 var openGrdSecs={};
@@ -1133,7 +1137,19 @@ function renderVipList(){
   if(!list.length){el.innerHTML=empH("등록된 VIP가 없습니다");return;}
   if(vipViewMode==="group"){renderVipGroupView(list,el);return;}
   var gs=gradesSorted();
-  list.sort(function(a,b){var ga=gs.findIndex(function(g){return g.id===a.gradeId;}),gb=gs.findIndex(function(g){return g.id===b.gradeId;});ga=ga<0?99:ga;gb=gb<0?99:gb;return ga!==gb?ga-gb:String(a.name).localeCompare(String(b.name));});
+  list.sort(function(a,b){
+    if(vipSort==="name") return String(a.name).localeCompare(String(b.name));
+    if(vipSort==="recent"){
+      var la=C.schs.filter(function(s){return String(s.vipId)===String(a.id)&&s.type!=="admission";}).sort(function(x,y){return dstr(y.date).localeCompare(dstr(x.date));})[0];
+      var lb=C.schs.filter(function(s){return String(s.vipId)===String(b.id)&&s.type!=="admission";}).sort(function(x,y){return dstr(y.date).localeCompare(dstr(x.date));})[0];
+      var da=la?dstr(la.date):"0000",db=lb?dstr(lb.date):"0000";
+      return db.localeCompare(da);
+    }
+    // 기본: 등급순
+    var ga=gs.findIndex(function(g){return g.id===a.gradeId;}),gb=gs.findIndex(function(g){return g.id===b.gradeId;});
+    ga=ga<0?99:ga;gb=gb<0?99:gb;
+    return ga!==gb?ga-gb:String(a.name).localeCompare(String(b.name));
+  });
   el.innerHTML=list.map(function(v){return vipCard(v,bulkMode.vip);}).join("");
 }
 function renderVipGroupView(list,el){
@@ -1165,25 +1181,30 @@ function vipCard(v,showCb){
   var col=getGrd(v.gradeId).color;var grd=getGrd(v.gradeId);
   var last=C.schs.filter(function(s){return String(s.vipId)===String(v.id)&&s.type!=="admission";}).sort(function(a,b){return dstr(b.date).localeCompare(dstr(a.date));})[0];
   var grp=getGrpById(v.groupId);var admitted=isAdmitted(v.id);
-  var cbHtml=showCb?"<input type='checkbox' class='bulk-cb-vip' value='"+v.id+"' onclick='event.stopPropagation()'>":"";
-  return"<div class='vc' onclick=\""+(showCb?"":"openVipDet('"+v.id+"')")+"\">"+
-    (showCb?"<div class='cb-wrap'>"+cbHtml+"</div>":"")+
-    "<div class='av' style='background:"+col+"20;color:"+col+";border-color:"+col+"50'>"+String(v.name).slice(-2)+"</div>"+
-    "<div class='vi2'>"+
-      "<div style='display:flex;align-items:center;gap:5px;flex-wrap:wrap'>"+
-        "<span class='vn2'>"+v.name+"</span>"+
-        (v.regNo?"<span style='font-size:10px;color:var(--dm)'>"+v.regNo+"</span>":"")+
-        "<span class='gbadge' style='background:"+col+"25;color:"+col+"'>"+grd.name+"</span>"+
-        (admitted?"<span class='aon'>입원중</span>":"")+
-      "</div>"+
-      // 그룹은 별도 줄에 표시
-      (grp?"<div style='margin-top:3px'><span class='grpb' style='background:"+grp.color+"'>"+grp.name+"</span></div>":"")+
-      "<div class='vpos' style='margin-top:2px'>"+(v.pos||"")+"</div>"+
-      "<div class='vdp'>"+(v.dept||"-")+"</div>"+
-      "<div class='vlast'>최근: "+(last?fmt(dstr(last.date)):"없음")+"</div>"+
-    "</div>"+
-    (!showCb?"<span style='color:var(--dm);font-size:20px'>›</span>":"")+
-  "</div>";
+  var cbHtml=showCb?"<input type='checkbox' class='bulk-cb-vip' value='"+v.id+"' onclick='event.stopPropagation()' style='width:17px;height:17px;accent-color:var(--ac);flex-shrink:0'>":"";
+  return "<div class='vc' onclick='"+(showCb?"":"openVipDet('"+v.id+"')")+"'>"
+    +(showCb?"<div class='cb-wrap'>"+cbHtml+"</div>":"")
+    // 좌: 아바타
+    +"<div class='av' style='width:38px;height:38px;font-size:13px;flex-shrink:0;background:"+col+"20;color:"+col+";border-color:"+col+"50'>"+String(v.name).slice(-2)+"</div>"
+    // 중: 이름+배지 / 직책+그룹 / 진료과
+    +"<div style='flex:1;min-width:0;display:flex;flex-direction:column;gap:2px'>"
+      // 줄1: 이름 + 등급 + 입원
+      +"<div style='display:flex;align-items:center;gap:5px;flex-wrap:nowrap;overflow:hidden'>"
+        +"<span style='font-size:14px;font-weight:700;white-space:nowrap'>"+v.name+"</span>"
+        +(v.regNo?"<span style='font-size:10px;color:var(--dm);white-space:nowrap'>"+v.regNo+"</span>":"")
+        +"<span class='gbadge' style='background:"+col+"25;color:"+col+";flex-shrink:0'>"+grd.name+"</span>"
+        +(admitted?"<span class='aon' style='flex-shrink:0'>입원중</span>":"")
+      +"</div>"
+      // 줄2: 직책 · 그룹 · 진료과 (가로 한줄)
+      +"<div style='display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mt);flex-wrap:nowrap;overflow:hidden'>"
+        +(v.pos?"<span style='white-space:nowrap'>"+v.pos+"</span>":"")
+        +(grp?"<span class='grpb' style='background:"+grp.color+";flex-shrink:0'>"+grp.name+"</span>":"")
+        +(v.dept?"<span style='color:var(--ac2);white-space:nowrap'>"+v.dept+"</span>":"")
+        +"<span style='color:var(--dm);margin-left:auto;white-space:nowrap'>"+( last?"최근 "+fmt(dstr(last.date)):"기록없음")+"</span>"
+      +"</div>"
+    +"</div>"
+    +(!showCb?"<span style='color:var(--dm);font-size:16px;flex-shrink:0'>›</span>":"")
+  +"</div>";
 }
 function fltVip(g){
   vipFlt=g;renderVipList();buildVipFltBtns();
@@ -1727,8 +1748,39 @@ function toggleCalView(){
   setTimeout(function(){renderGT(calDt.getFullYear(),calDt.getMonth());},50);
 }
 
+
+function setVipSort(s){
+  vipSort=s;
+  ["srtGrd","srtNm","srtRec"].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.style.background=
+      (s==="grade"&&id==="srtGrd"||s==="name"&&id==="srtNm"||s==="recent"&&id==="srtRec")
+      ?"var(--ac)":"";
+    if(el)el.style.color=
+      (s==="grade"&&id==="srtGrd"||s==="name"&&id==="srtNm"||s==="recent"&&id==="srtRec")
+      ?"#fff":"";
+  });
+  renderVipList();
+}
+
 window.addEventListener("load",function(){
   var t=localStorage.getItem("vip_theme")||"dark";applyTheme(t);buildThemeGrid();setTimeout(function(){applyTheme(t);},100);
+  // 로컬 파일로 열면 비번 없이 관리자 미리보기
+  if(location.protocol==="file:"||location.hostname.indexOf("real4goon.github.io")<0){
+    C.level="admin";C.perms={phone:true,note:true};
+    C.grades=[{id:"g1",name:"VVIP",color:"#f59e0b",sortOrder:0},{id:"g2",name:"VIP",color:"#6366f1",sortOrder:1},{id:"g3",name:"일반",color:"#34d399",sortOrder:2}];
+    C.groups=[{id:"gr1",name:"이사장 가족",color:"#f472b6",desc:""}];
+    C.depts=[{id:"d1",abbr:"심내",fullName:"심장내과"},{id:"d2",abbr:"정형외",fullName:"정형외과"}];
+    C.managers=[{id:"m1",name:"김영선"}];
+    C.vips=[{id:"v1",name:"홍길동",gradeId:"g1",groupId:"gr1",pos:"이사장",dept:"심장내과",regNo:"100000001"},{id:"v2",name:"김영희",gradeId:"g2",groupId:"",pos:"교수",dept:"정형외과",regNo:"100000002"}];
+    C.schs=[{id:"s1",vipId:"v1",date:ds(new Date()),type:"outpatient",dept:"심내",doc:"박교수",note:"VIP실 준비",mgr:"김영선"}];
+    C.ntcs=[];C.groups=C.groups;
+    document.getElementById("ls").style.display="none";
+    document.getElementById("app").style.display="flex";
+    buildThemeGrid();updateLvUI();renderAll();
+    setSS(true,"[로컬 미리보기 모드] 실제 데이터 아님");
+    return;
+  }
   // 새로고침 후 자동 재로그인
   var savedPw=localStorage.getItem('vip_pw');
   if(savedPw){
