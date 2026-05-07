@@ -1948,7 +1948,7 @@ function vipSchCard(s,v,col,isFuture){
       (s.doc?"<span>👨‍⚕️ "+s.doc+"</span>":"")+
       (s.mgr?"<span>👤 담당: "+s.mgr+"</span>":"")+
     "</div>"+
-    (s.note?"<div style='font-size:12px;color:var(--ac2);margin-top:5px;padding:6px 8px;background:var(--acl);border-radius:4px'>"+s.note+"</div>":"")+
+    (s.note&&String(s.note).indexOf("1899")<0?"<div style='font-size:12px;color:var(--ac2);margin-top:5px;padding:6px 8px;background:var(--acl);border-radius:4px'>"+s.note+"</div>":"")+
     editBtn+
     "</div>";
 }
