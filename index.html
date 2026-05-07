@@ -533,13 +533,23 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--tx);
       <option value="exam">검사</option><option value="surgery">수술</option><option value="other">기타</option>
     </select>
   </div>
-  <div class="fg"><label>VIP 선택<span class="req">*</span></label><select id="sVip"></select></div>
+  <div class="fg"><label>VIP 선택<span class="req">*</span></label>
+    <input type="text" id="sVipText" list="sVipList" placeholder="이름 입력 후 선택" autocomplete="off"
+      style="width:100%;padding:11px 13px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:14px;outline:none;min-height:44px"
+      oninput="onVipInput()">
+    <datalist id="sVipList"></datalist>
+    <input type="hidden" id="sVip">
+  </div>
   <div class="fr">
     <div class="fg"><label id="sDateLbl">날짜<span class="req">*</span></label><input type="date" id="sDate"></div>
     <div class="fg" id="sEndWrap" style="display:none"><label>퇴원 예정일</label><input type="date" id="sEndDate"></div>
   </div>
-  <div class="fg"><label>진료과</label><select id="sDptSel" onchange="onDptChg()"></select></div>
-  <div class="fg" id="sDptCW" style="display:none"><label>직접 입력</label><input type="text" id="sDptCust"></div>
+  <div class="fg"><label>진료과</label>
+    <input type="text" id="sDptCust" list="sDptList" placeholder="진료과 입력 또는 선택" autocomplete="off"
+      style="width:100%;padding:11px 13px;background:var(--cd);border:1px solid var(--bd);border-radius:var(--rs);color:var(--tx);font-family:inherit;font-size:14px;outline:none;min-height:44px">
+    <datalist id="sDptList"></datalist>
+    <input type="hidden" id="sDptSel">
+  </div>
   <div class="fg"><label>담당 교수명</label><input type="text" id="sDoc" placeholder="예: 김철수 교수"></div>
   <div class="fg"><label>내용 / 준비사항</label><textarea id="sNote" placeholder="메모, 준비사항 등"></textarea></div>
   <div class="fg"><label>담당자</label><select id="sMgrSel" onchange="onMgrChg()"></select></div>
@@ -978,7 +988,7 @@ function bulkDelNtc(){
 
 // ═══ 렌더 ═══
 function renderAll(){renderHome();renderCal();renderNtcs();renderVipList();renderGrpList();renderGrdList();renderDptList();renderMgrList();if(schTab==="vip")renderUpcomingList();}
-function dstr(s){return s?String(s).substring(0,10):"";}
+function dstr(s){if(!s)return"";var v=String(s).substring(0,10);return(v<"1900-01-01")?"":v;}
 
 // ── 홈 ──
 function renderHome(){
@@ -1312,14 +1322,13 @@ function toggleNtcBulk(){
 
 // ══ 일정 모달 ══
 function buildDptSel(val){
-  var opts="<option value=''>-- 선택 --</option>";C.depts.forEach(function(d){opts+="<option value='"+d.abbr+"'>"+d.abbr+" ("+d.fullName+")</option>";});opts+="<option value='__c'>직접 입력</option>";
-  document.getElementById("sDptSel").innerHTML=opts;
-  var found=val&&C.depts.some(function(d){return d.abbr===val;});
-  if(found){document.getElementById("sDptSel").value=val;document.getElementById("sDptCW").style.display="none";}
-  else if(val){document.getElementById("sDptSel").value="__c";document.getElementById("sDptCW").style.display="block";document.getElementById("sDptCust").value=val;}
-  else document.getElementById("sDptCW").style.display="none";
+  // datalist 방식으로 진료과 목록 채우기
+  var dl=document.getElementById("sDptList");
+  if(dl){dl.innerHTML=C.depts.map(function(d){return"<option value='"+d.abbr+"'>"+d.abbr+" ("+d.fullName+")</option>";}).join("");}
+  var inp=document.getElementById("sDptCust");
+  if(inp&&val) inp.value=val;
 }
-function onDptChg(){document.getElementById("sDptCW").style.display=document.getElementById("sDptSel").value==="__c"?"block":"none";}
+function onDptChg(){}
 function buildMgrSel(val){
   var opts="<option value=''>-- 선택 --</option>";C.managers.forEach(function(m){opts+="<option value='"+m.name+"'>"+m.name+"</option>";});opts+="<option value='__c'>직접 입력</option>";
   document.getElementById("sMgrSel").innerHTML=opts;
@@ -1330,20 +1339,36 @@ function buildMgrSel(val){
 }
 function onMgrChg(){document.getElementById("sMgrCW").style.display=document.getElementById("sMgrSel").value==="__c"?"block":"none";}
 function onTypeChg(){var t=document.getElementById("sType").value;document.getElementById("sEndWrap").style.display=t==="admission"?"block":"none";document.getElementById("sDateLbl").innerHTML=t==="admission"?"입원 시작일<span class='req'>*</span>":"날짜<span class='req'>*</span>";}
-function getDptVal(){var v=document.getElementById("sDptSel").value;return v==="__c"?document.getElementById("sDptCust").value.trim():v;}
+function getDptVal(){var inp=document.getElementById("sDptCust");return inp?inp.value.trim():""}
 function getMgrVal(){var v=document.getElementById("sMgrSel").value;return v==="__c"?document.getElementById("sMgrCust").value.trim():v;}
+
+
+function onVipInput(){
+  var txt=document.getElementById("sVipText").value;
+  var matched=C.vips.filter(function(v){return("["+getGrd(v.gradeId).name+"] "+v.name)===txt;})[0];
+  var hid=document.getElementById("sVip");
+  if(hid) hid.value=matched?matched.id:"";
+}
 
 function openSchMod(id,dateStr){
   editSchId=id||null;
   var sel=document.getElementById("sVip");
-  sel.innerHTML=C.vips.map(function(v){return"<option value='"+v.id+"'>["+getGrd(v.gradeId).name+"] "+v.name+"</option>";}).join("");
+  // datalist 채우기
+  var dl=document.getElementById("sVipList");
+  if(dl){dl.innerHTML=C.vips.map(function(v){return"<option value='["+getGrd(v.gradeId).name+"] "+v.name+"' data-id='"+v.id+"'>";}).join("");}
   if(id){
     var s=C.schs.filter(function(x){return x.id===id;})[0];if(!s)return;
-    document.getElementById("mSchTtl").textContent="일정 수정";sel.value=s.vipId;document.getElementById("sDate").value=dstr(s.date);
+    document.getElementById("mSchTtl").textContent="일정 수정";
+    // VIP 텍스트 복원
+    var selV=C.vips.filter(function(v){return String(v.id)===String(s.vipId);})[0];
+    if(selV){
+      var txt=document.getElementById("sVipText");if(txt)txt.value="["+getGrd(selV.gradeId).name+"] "+selV.name;
+    }
+    var hid=document.getElementById("sVip");if(hid)hid.value=s.vipId;document.getElementById("sDate").value=dstr(s.date);
     document.getElementById("sType").value=s.type;onTypeChg();document.getElementById("sEndDate").value=dstr(s.endDate||"");
     buildDptSel(s.dept||"");document.getElementById("sDoc").value=s.doc||"";document.getElementById("sNote").value=s.note||"";buildMgrSel(s.mgr||"");document.getElementById("sNtc").value=s.nlvl||0;
   }else{
-    document.getElementById("mSchTtl").textContent="일정 추가";document.getElementById("sDate").value=dateStr||ds(new Date());
+    document.getElementById("mSchTtl").textContent="일정 추가";var stvt=document.getElementById("sVipText");if(stvt)stvt.value="";var shid=document.getElementById("sVip");if(shid)shid.value="";document.getElementById("sDate").value=dateStr||ds(new Date());
     document.getElementById("sType").value="outpatient";onTypeChg();document.getElementById("sEndDate").value="";
     buildDptSel("");document.getElementById("sDoc").value="";document.getElementById("sNote").value="";buildMgrSel("");document.getElementById("sNtc").value=0;
   }
@@ -1359,7 +1384,7 @@ function saveSch(){
   callApi("saveSch",{row:row},function(err,r){
     if(err||r.error){alert("저장 실패.");setLd(false);return;}
     if(!editSchId&&nlvl>0){var v=getVip(vid);var nl={title:"["+(v?v.name:"")+"] "+(getDptLabel(row.dept)||row.dept||"")+" "+TM[row.type]+" 예정",body:fmt(date)+" | "+(row.note||"상세 없음")+" | 담당: "+(row.mgr||"-"),urg:nlvl===2,ct:new Date().toISOString(),expiry:date};callApi("saveNtc",{row:nl},function(){doRefresh();});}
-    else doRefresh();
+    else{doRefresh();setTimeout(function(){if(schTab==="vip"&&vipPickId)loadVipSchById(vipPickId);},400);}
   });
 }
 
